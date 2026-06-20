@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ledger — Personal Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink-deep:#16252A;
+    --ink-panel:#1F3338;
+    --paper:#F1E9D8;
+    --paper-dim:#E4D9C2;
+    --paper-dim2:#D9CBAC;
+    --text-on-paper:#2A2118;
+    --text-on-paper-dim:#6b6052;
+    --text-on-dark:#EDE6D6;
+    --text-on-dark-dim:#A9B8B2;
+    --clay:#D2784F;
+    --clay-dim:#a85e3d;
+    --gold:#C99A3B;
+    --sage:#6E9B7B;
+    --rule:rgba(42,33,24,0.16);
+    --rule-dark:rgba(237,230,214,0.14);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--ink-deep);
+    color:var(--text-on-dark);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+  }
+  .app{opacity:0; transition:opacity .4s ease;}
+  .app.ready{opacity:1;}
+  .loading-screen{
+    min-height:100vh; display:flex; align-items:center; justify-content:center;
+    font-family:'JetBrains Mono'; color:var(--text-on-dark-dim); font-size:13px; letter-spacing:.05em;
+  }
+
+  .header{
+    padding:36px 28px 30px;
+    background:linear-gradient(180deg, var(--ink-deep), var(--ink-panel));
+    border-bottom:1px solid var(--rule-dark);
+  }
+  .header-inner{max-width:1100px; margin:0 auto;}
+  .eyebrow{
+    font-family:'JetBrains Mono'; font-size:11px; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--gold); margin:0 0 8px;
+  }
+  .greeting{
+    font-family:'Fraunces'; font-weight:700; font-size:clamp(26px,4vw,38px);
+    margin:0 0 14px; line-height:1.1;
+  }
+  .summary-chips{display:flex; gap:22px; flex-wrap:wrap; font-family:'JetBrains Mono'; font-size:13px; color:var(--text-on-dark-dim);}
+  .summary-chips strong{color:var(--text-on-dark); font-weight:600;}
+
+  .grid{
+    display:grid; grid-template-columns:1fr 1fr; gap:20px;
+    padding:24px 28px; max-width:1100px; margin:0 auto;
+  }
+  .full-width{grid-column:1 / -1;}
+  @media (max-width:760px){ .grid{grid-template-columns:1fr;} }
+
+  .card{
+    background:var(--paper); color:var(--text-on-paper); border-radius:12px;
+    padding:24px 24px 20px;
+    box-shadow:0 1px 0 rgba(0,0,0,.18), 0 10px 28px rgba(0,0,0,.28);
+  }
+  .card-title-row{display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; gap:12px;}
+  .card-eyebrow{
+    font-family:'JetBrains Mono'; font-size:10px; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--clay); margin:0 0 4px;
+  }
+  .card-title{font-family:'Fraunces'; font-weight:600; font-size:20px; margin:0;}
+  .hint-btn{
+    background:none; border:none; font-family:'JetBrains Mono'; font-size:11px;
+    color:var(--text-on-paper-dim); cursor:pointer; text-decoration:underline; padding:0;
+  }
+  .hint-btn:hover{color:var(--clay);}
+
+  /* Finance */
+  .budget-row{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:8px;}
+  .budget-edit{display:flex; align-items:baseline; gap:6px; font-family:'JetBrains Mono'; font-size:13px; color:var(--text-on-paper-dim);}
+  .budget-edit input{
+    width:84px; font-family:'JetBrains Mono'; font-size:13px; border:none; border-bottom:1px solid var(--rule);
+    background:transparent; padding:2px 0; color:var(--text-on-paper);
+  }
+  .budget-edit input:focus{outline:none; border-bottom-color:var(--clay);}
+  .remaining{font-family:'JetBrains Mono'; font-weight:700; font-size:30px; margin:2px 0 10px;}
+  .remaining small{font-size:13px; font-weight:500; color:var(--text-on-paper-dim);}
+  .bar-track{height:8px; border-radius:4px; background:var(--paper-dim2); overflow:hidden; margin-bottom:6px;}
+  .bar-fill{height:100%; border-radius:4px; transition:width .3s ease;}
+  .bar-caption{font-family:'JetBrains Mono'; font-size:11px; color:var(--text-on-paper-dim); margin-bottom:16px;}
+
+  .field-row{display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap;}
+  .field-row input[type=text], .field-row input[type=number], .field-row select{
+    font-family:'Inter'; font-size:13px; border:none; border-bottom:1px solid var(--rule);
+    background:transparent; padding:7px 2px; color:var(--text-on-paper);
+  }
+  .field-row input::placeholder{color:var(--text-on-paper-dim);}
+  .field-row input:focus, .field-row select:focus{outline:none; border-bottom-color:var(--clay);}
+  .amt-input{width:70px;}
+  .note-input{flex:1; min-width:90px;}
+  .cat-select{min-width:90px;}
+  .add-btn{
+    font-family:'JetBrains Mono'; font-size:12px; font-weight:600; letter-spacing:.03em;
+    background:var(--ink-deep); color:var(--paper); border:none; border-radius:6px;
+    padding:8px 14px; cursor:pointer; transition:background .15s;
+  }
+  .add-btn:hover{background:var(--clay-dim);}
+
+  .expense-list{list-style:none; margin:0 0 18px; padding:0; max-height:158px; overflow-y:auto;}
+  .expense-list li{
+    display:flex; justify-content:space-between; align-items:center; gap:8px;
+    padding:7px 0; border-bottom:1px solid var(--rule); font-size:13px;
+  }
+  .exp-meta{display:flex; flex-direction:column; min-width:0;}
+  .exp-cat{font-family:'JetBrains Mono'; font-size:10px; letter-spacing:.06em; text-transform:uppercase; color:var(--text-on-paper-dim);}
+  .exp-note{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .exp-amt{font-family:'JetBrains Mono'; font-weight:600; flex:0 0 auto;}
+  .del-x{background:none; border:none; cursor:pointer; color:var(--text-on-paper-dim); font-size:14px; line-height:1; padding:2px 4px;}
+  .del-x:hover{color:var(--clay);}
+  .empty-note{font-size:12.5px; color:var(--text-on-paper-dim); padding:6px 0 16px; font-style:italic;}
+
+  .cat-breakdown{margin-top:4px;}
+  .cat-bar-row{display:grid; grid-template-columns:64px 1fr 44px; align-items:center; gap:8px; margin-bottom:6px; font-size:11px; font-family:'JetBrains Mono'; color:var(--text-on-paper-dim);}
+  .cat-bar-track{height:6px; border-radius:3px; background:var(--paper-dim2); overflow:hidden;}
+  .cat-bar-fill{height:100%; background:var(--clay); border-radius:3px;}
+
+  /* Habits */
+  .habit-row{margin-bottom:18px;}
+  .habit-row:last-of-type{margin-bottom:8px;}
+  .habit-top{display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;}
+  .habit-name{font-weight:600; font-size:14px;}
+  .habit-streak{font-family:'JetBrains Mono'; font-size:12px; color:var(--gold); font-weight:600;}
+  .chain{display:flex; align-items:center; margin:2px 0;}
+  .bead{
+    width:11px; height:11px; border-radius:50%; background:var(--paper-dim2);
+    border:1.5px solid var(--rule); flex:0 0 auto; cursor:pointer; transition:transform .12s;
+  }
+  .bead:hover{transform:scale(1.3);}
+  .bead.done{background:var(--gold); border-color:var(--gold); box-shadow:0 0 0 3px rgba(201,154,59,.22);}
+  .thread{flex:1 1 auto; height:2px; margin:0 2px; min-width:4px;
+    background-image:repeating-linear-gradient(to right, var(--rule) 0 3px, transparent 3px 7px);}
+  .thread.solid{background-image:none; background-color:var(--gold);}
+  .habit-del{background:none;border:none;cursor:pointer;color:var(--text-on-paper-dim);font-size:12px;}
+  .habit-del:hover{color:var(--clay);}
+
+  /* Todos */
+  .todo-list{list-style:none; margin:0; padding:0;}
+  .todo-list li{display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--rule);}
+  .todo-list input[type=checkbox]{width:16px; height:16px; accent-color:var(--sage); cursor:pointer; flex:0 0 auto;}
+  .todo-text{flex:1; font-size:14px;}
+  .todo-text.done{text-decoration:line-through; color:var(--text-on-paper-dim);}
+
+  .footer{
+    max-width:1100px; margin:0 auto; padding:8px 28px 40px; display:flex; justify-content:space-between;
+    align-items:center; flex-wrap:wrap; gap:8px;
+    font-family:'JetBrains Mono'; font-size:11px; color:var(--text-on-dark-dim);
+  }
+  .footer button{
+    background:none; border:none; color:var(--text-on-dark-dim); font-family:'JetBrains Mono'; font-size:11px;
+    text-decoration:underline; cursor:pointer; padding:0;
+  }
+  .footer button:hover{color:var(--clay);}
+
+  .toast{
+    position:fixed; bottom:20px; right:20px; background:var(--ink-panel); color:var(--text-on-dark);
+    border:1px solid var(--rule-dark); padding:10px 16px; border-radius:8px; font-size:13px;
+    font-family:'Inter'; opacity:0; transform:translateY(8px); transition:all .25s ease; pointer-events:none;
+  }
+  .toast.show{opacity:1; transform:translateY(0);}
+</style>
+</head>
+<body>
+
+<div id="loading" class="loading-screen">setting the table…</div>
+<div id="app" class="app">
+
+  <div class="header">
+    <div class="header-inner">
+      <p class="eyebrow" id="dateLine">—</p>
+      <h1 class="greeting" id="greeting">—</h1>
+      <div class="summary-chips" id="summaryChips"></div>
+    </div>
+  </div>
+
+  <div class="grid">
+
+    <!-- Finance card -->
+    <div class="card">
+      <div class="card-title-row">
+        <div>
+          <p class="card-eyebrow">Finance</p>
+          <h2 class="card-title">This month</h2>
+        </div>
+        <button class="hint-btn" id="resetMonthBtn">reset month</button>
+      </div>
+
+      <div class="budget-row">
+        <div class="budget-edit">
+          budget $<input type="number" id="budgetInput" min="0" step="1">
+        </div>
+      </div>
+
+      <div class="remaining" id="remainingAmt">$0 <small>left</small></div>
+      <div class="bar-track"><div class="bar-fill" id="budgetBar"></div></div>
+      <div class="bar-caption" id="budgetCaption">—</div>
+
+      <div class="field-row">
+        <input type="number" class="amt-input" id="expAmt" placeholder="amount" min="0" step="0.01">
+        <select class="cat-select" id="expCat">
+          <option>Food</option>
+          <option>Transport</option>
+          <option>Bills</option>
+          <option>Fun</option>
+          <option>Other</option>
+        </select>
+        <input type="text" class="note-input" id="expNote" placeholder="note (optional)">
+        <button class="add-btn" id="addExpBtn">+ Add</button>
+      </div>
+
+      <ul class="expense-list" id="expenseList"></ul>
+      <div class="cat-breakdown" id="catBreakdown"></div>
+    </div>
+
+    <!-- Habits card -->
+    <div class="card">
+      <div class="card-title-row">
+        <div>
+          <p class="card-eyebrow">Streaks</p>
+          <h2 class="card-title">Habits</h2>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <input type="text" class="note-input" id="habitName" placeholder="new habit, e.g. Stretch">
+        <button class="add-btn" id="addHabitBtn">+ Add</button>
+      </div>
+
+      <div id="habitsContainer"></div>
+    </div>
+
+    <!-- Todos card -->
+    <div class="card full-width">
+      <div class="card-title-row">
+        <div>
+          <p class="card-eyebrow">Quick list</p>
+          <h2 class="card-title">Today</h2>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <input type="text" class="note-input" id="todoText" placeholder="add something to do…">
+        <button class="add-btn" id="addTodoBtn">+ Add</button>
+      </div>
+
+      <ul class="todo-list" id="todoList"></ul>
+    </div>
+
+  </div>
+
+  <div class="footer">
+    <span>saved automatically · private to you</span>
+    <button id="clearAllBtn">clear all dashboard data</button>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  const FINANCE_KEY = 'dashboard-finance';
+  const HABITS_KEY = 'dashboard-habits';
+  const TODOS_KEY = 'dashboard-todos';
+
+  let finance = { budget: 0, expenses: [] };
+  let habits = { list: [], completions: {} };
+  let todos = [];
+
+  const CATEGORY_COLOR = '#D2784F';
+
+  function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+  function fmtDate(d){
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+  function todayStr(){ return fmtDate(new Date()); }
+  function dateOffset(daysAgo){
+    const d = new Date();
+    d.setDate(d.getDate() - daysAgo);
+    return fmtDate(d);
+  }
+  function money(n){
+    const v = Number(n) || 0;
+    return (v < 0 ? '-$' : '$') + Math.abs(v).toLocaleString(undefined, {maximumFractionDigits:2, minimumFractionDigits: v % 1 === 0 ? 0 : 2});
+  }
+
+  function showToast(msg){
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(t._timer);
+    t._timer = setTimeout(()=> t.classList.remove('show'), 3000);
+  }
+
+  async function loadKey(key, fallback){
+    try{
+      const res = await window.storage.get(key, false);
+      if(res && typeof res.value === 'string') return JSON.parse(res.value);
+      return fallback;
+    }catch(e){
+      return fallback;
+    }
+  }
+  async function saveKey(key, value){
+    try{
+      const res = await window.storage.set(key, JSON.stringify(value), false);
+      if(!res) showToast("Couldn't save — try again");
+    }catch(e){
+      showToast("Couldn't save — try again");
+    }
+  }
+
+  // ---------- Header ----------
+  function renderHeader(){
+    const now = new Date();
+    document.getElementById('dateLine').textContent = now.toLocaleDateString(undefined, { weekday:'short', month:'short', day:'numeric' }).toUpperCase();
+    const hour = now.getHours();
+    const greet = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+    document.getElementById('greeting').textContent = greet + '.';
+
+    const spent = monthSpent();
+    const remaining = (finance.budget||0) - spent;
+    const todayCompletedCount = habits.list.filter(h => (habits.completions[h.id]||[]).includes(todayStr())).length;
+
+    const chips = document.getElementById('summaryChips');
+    chips.innerHTML = '';
+    const c1 = document.createElement('span');
+    c1.innerHTML = '<strong>' + money(remaining) + '</strong> left to spend';
+    const c2 = document.createElement('span');
+    c2.innerHTML = '<strong>' + todayCompletedCount + ' / ' + habits.list.length + '</strong> habits done today';
+    const c3 = document.createElement('span');
+    const openTodos = todos.filter(t=>!t.done).length;
+    c3.innerHTML = '<strong>' + openTodos + '</strong> things on today\'s list';
+    chips.appendChild(c1); chips.appendChild(c2); chips.appendChild(c3);
+  }
+
+  // ---------- Finance ----------
+  function monthSpent(){
+    return finance.expenses.reduce((sum,e)=> sum + (Number(e.amount)||0), 0);
+  }
+
+  function renderFinance(){
+    document.getElementById('budgetInput').value = finance.budget || '';
+
+    const spent = monthSpent();
+    const budget = finance.budget || 0;
+    const remaining = budget - spent;
+    const remEl = document.getElementById('remainingAmt');
+    remEl.innerHTML = money(remaining) + ' <small>left' + (budget ? ' of ' + money(budget) : '') + '</small>';
+
+    const pct = budget > 0 ? Math.min(100, (spent/budget)*100) : 0;
+    const bar = document.getElementById('budgetBar');
+    bar.style.width = pct + '%';
+    bar.style.background = spent > budget && budget > 0 ? 'var(--clay)' : (pct > 80 ? 'var(--gold)' : 'var(--sage)');
+
+    const cap = document.getElementById('budgetCaption');
+    if(!budget){
+      cap.textContent = 'set a monthly budget above to track remaining spend';
+    } else if(spent > budget){
+      cap.textContent = 'over budget by ' + money(spent - budget);
+    } else {
+      cap.textContent = money(spent) + ' spent so far';
+    }
+
+    const list = document.getElementById('expenseList');
+    list.innerHTML = '';
+    if(finance.expenses.length === 0){
+      const div = document.createElement('div');
+      div.className = 'empty-note';
+      div.textContent = 'No expenses logged yet this month.';
+      list.appendChild(div);
+    } else {
+      finance.expenses.slice().reverse().slice(0,8).forEach(e=>{
+        const li = document.createElement('li');
+        const meta = document.createElement('div');
+        meta.className = 'exp-meta';
+        const cat = document.createElement('span');
+        cat.className = 'exp-cat';
+        cat.textContent = e.category;
+        meta.appendChild(cat);
+        if(e.note){
+          const note = document.createElement('span');
+          note.className = 'exp-note';
+          note.textContent = e.note;
+          meta.appendChild(note);
+        }
+        const amt = document.createElement('span');
+        amt.className = 'exp-amt';
+        amt.textContent = money(e.amount);
+
+        const del = document.createElement('button');
+        del.className = 'del-x';
+        del.textContent = '×';
+        del.onclick = () => {
+          finance.expenses = finance.expenses.filter(x=>x.id !== e.id);
+          saveKey(FINANCE_KEY, finance);
+          renderFinance(); renderHeader();
+        };
+
+        li.appendChild(meta);
+        li.appendChild(amt);
+        li.appendChild(del);
+        list.appendChild(li);
+      });
+    }
+
+    // category breakdown
+    const totals = {};
+    finance.expenses.forEach(e=>{ totals[e.category] = (totals[e.category]||0) + (Number(e.amount)||0); });
+    const maxVal = Math.max(1, ...Object.values(totals));
+    const cb = document.getElementById('catBreakdown');
+    cb.innerHTML = '';
+    Object.entries(totals).sort((a,b)=>b[1]-a[1]).forEach(([cat,val])=>{
+      const row = document.createElement('div');
+      row.className = 'cat-bar-row';
+      const label = document.createElement('span');
+      label.textContent = cat;
+      const track = document.createElement('div');
+      track.className = 'cat-bar-track';
+      const fill = document.createElement('div');
+      fill.className = 'cat-bar-fill';
+      fill.style.width = ((val/maxVal)*100) + '%';
+      track.appendChild(fill);
+      const amtSpan = document.createElement('span');
+      amtSpan.style.textAlign = 'right';
+      amtSpan.textContent = money(val);
+      row.appendChild(label); row.appendChild(track); row.appendChild(amtSpan);
+      cb.appendChild(row);
+    });
+  }
+
+  document.getElementById('budgetInput').addEventListener('change', (e)=>{
+    finance.budget = Math.max(0, Number(e.target.value) || 0);
+    saveKey(FINANCE_KEY, finance);
+    renderFinance(); renderHeader();
+  });
+
+  document.getElementById('addExpBtn').addEventListener('click', ()=>{
+    const amtInput = document.getElementById('expAmt');
+    const catInput = document.getElementById('expCat');
+    const noteInput = document.getElementById('expNote');
+    const amount = Number(amtInput.value);
+    if(!amount || amount <= 0){ amtInput.focus(); return; }
+    finance.expenses.push({ id: uid(), amount, category: catInput.value, note: noteInput.value.trim(), date: todayStr() });
+    saveKey(FINANCE_KEY, finance);
+    amtInput.value = ''; noteInput.value = '';
+    renderFinance(); renderHeader();
+  });
+
+  document.getElementById('resetMonthBtn').addEventListener('click', ()=>{
+    if(confirm('Clear this month\'s logged expenses? Your budget stays the same.')){
+      finance.expenses = [];
+      saveKey(FINANCE_KEY, finance);
+      renderFinance(); renderHeader();
+    }
+  });
+
+  // ---------- Habits ----------
+  function streakFor(habitId){
+    const dates = new Set(habits.completions[habitId] || []);
+    let count = 0;
+    let cursor = new Date();
+    if(!dates.has(todayStr())){ cursor.setDate(cursor.getDate()-1); }
+    while(dates.has(fmtDate(cursor))){
+      count++;
+      cursor.setDate(cursor.getDate()-1);
+    }
+    return count;
+  }
+
+  function renderHabits(){
+    const container = document.getElementById('habitsContainer');
+    container.innerHTML = '';
+    if(habits.list.length === 0){
+      const div = document.createElement('div');
+      div.className = 'empty-note';
+      div.textContent = 'No habits yet — add one above to start a streak.';
+      container.appendChild(div);
+      return;
+    }
+    const last14 = [];
+    for(let i=13;i>=0;i--) last14.push(dateOffset(i));
+
+    habits.list.forEach(h=>{
+      const dates = new Set(habits.completions[h.id] || []);
+      const row = document.createElement('div');
+      row.className = 'habit-row';
+
+      const top = document.createElement('div');
+      top.className = 'habit-top';
+      const name = document.createElement('span');
+      name.className = 'habit-name';
+      name.textContent = h.name;
+      const right = document.createElement('div');
+      right.style.display = 'flex'; right.style.alignItems='center'; right.style.gap='10px';
+      const streak = document.createElement('span');
+      streak.className = 'habit-streak';
+      const s = streakFor(h.id);
+      streak.textContent = s + (s===1 ? ' day' : ' days');
+      const del = document.createElement('button');
+      del.className = 'habit-del';
+      del.textContent = '×';
+      del.onclick = () => {
+        habits.list = habits.list.filter(x=>x.id!==h.id);
+        delete habits.completions[h.id];
+        saveKey(HABITS_KEY, habits);
+        renderHabits(); renderHeader();
+      };
+      right.appendChild(streak); right.appendChild(del);
+      top.appendChild(name); top.appendChild(right);
+
+      const chain = document.createElement('div');
+      chain.className = 'chain';
+      last14.forEach((dStr, idx)=>{
+        const bead = document.createElement('span');
+        bead.className = 'bead' + (dates.has(dStr) ? ' done' : '');
+        bead.title = dStr;
+        bead.onclick = () => {
+          const set = new Set(habits.completions[h.id] || []);
+          if(set.has(dStr)) set.delete(dStr); else set.add(dStr);
+          habits.completions[h.id] = Array.from(set);
+          saveKey(HABITS_KEY, habits);
+          renderHabits(); renderHeader();
+        };
+        chain.appendChild(bead);
+        if(idx < last14.length - 1){
+          const thread = document.createElement('span');
+          const nextDone = dates.has(last14[idx+1]);
+          thread.className = 'thread' + (dates.has(dStr) && nextDone ? ' solid' : '');
+          chain.appendChild(thread);
+        }
+      });
+
+      row.appendChild(top);
+      row.appendChild(chain);
+      container.appendChild(row);
+    });
+  }
+
+  document.getElementById('addHabitBtn').addEventListener('click', ()=>{
+    const input = document.getElementById('habitName');
+    const val = input.value.trim();
+    if(!val) { input.focus(); return; }
+    habits.list.push({ id: uid(), name: val });
+    saveKey(HABITS_KEY, habits);
+    input.value = '';
+    renderHabits(); renderHeader();
+  });
+  document.getElementById('habitName').addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter') document.getElementById('addHabitBtn').click();
+  });
+
+  // ---------- Todos ----------
+  function renderTodos(){
+    const list = document.getElementById('todoList');
+    list.innerHTML = '';
+    if(todos.length === 0){
+      const div = document.createElement('div');
+      div.className = 'empty-note';
+      div.textContent = 'Nothing on your list yet.';
+      list.appendChild(div);
+      return;
+    }
+    todos.forEach(t=>{
+      const li = document.createElement('li');
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = t.done;
+      cb.onchange = () => {
+        t.done = cb.checked;
+        saveKey(TODOS_KEY, todos);
+        renderTodos(); renderHeader();
+      };
+      const txt = document.createElement('span');
+      txt.className = 'todo-text' + (t.done ? ' done' : '');
+      txt.textContent = t.text;
+      const del = document.createElement('button');
+      del.className = 'del-x';
+      del.textContent = '×';
+      del.onclick = () => {
+        todos = todos.filter(x=>x.id!==t.id);
+        saveKey(TODOS_KEY, todos);
+        renderTodos(); renderHeader();
+      };
+      li.appendChild(cb); li.appendChild(txt); li.appendChild(del);
+      list.appendChild(li);
+    });
+  }
+
+  document.getElementById('addTodoBtn').addEventListener('click', ()=>{
+    const input = document.getElementById('todoText');
+    const val = input.value.trim();
+    if(!val){ input.focus(); return; }
+    todos.push({ id: uid(), text: val, done: false });
+    saveKey(TODOS_KEY, todos);
+    input.value = '';
+    renderTodos(); renderHeader();
+  });
+  document.getElementById('todoText').addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter') document.getElementById('addTodoBtn').click();
+  });
+
+  // ---------- Clear all ----------
+  document.getElementById('clearAllBtn').addEventListener('click', async ()=>{
+    if(!confirm('Clear ALL dashboard data — budget, expenses, habits, and your list? This cannot be undone.')) return;
+    try{
+      await window.storage.delete(FINANCE_KEY, false);
+      await window.storage.delete(HABITS_KEY, false);
+      await window.storage.delete(TODOS_KEY, false);
+    }catch(e){ /* ignore if already absent */ }
+    finance = { budget:0, expenses:[] };
+    habits = { list:[], completions:{} };
+    todos = [];
+    renderFinance(); renderHabits(); renderTodos(); renderHeader();
+    showToast('All data cleared');
+  });
+
+  // ---------- Init ----------
+  async function init(){
+    const [f,h,t] = await Promise.all([
+      loadKey(FINANCE_KEY, { budget:0, expenses:[] }),
+      loadKey(HABITS_KEY, { list:[], completions:{} }),
+      loadKey(TODOS_KEY, [])
+    ]);
+    finance = f; habits = h; todos = t;
+
+    renderHeader();
+    renderFinance();
+    renderHabits();
+    renderTodos();
+
+    document.getElementById('loading').style.display = 'none';
+    const app = document.getElementById('app');
+    app.classList.add('ready');
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
