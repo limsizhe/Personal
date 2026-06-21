@@ -18,8 +18,11 @@
       --text-muted: #A9B8B2;
       --border-color: rgba(237, 230, 214, 0.12);
       --alert-color: #D2784F;
+      --gold-color: #C99A3B;
+      --gold-hover: #E0AB43;
+      --calendar-color: #4A90E2;
       
-      /* Subtle Muted Category Indicator Border/Accents */
+      /* Categories Accents */
       --cat-home-color: #5D9CEC;
       --cat-money-color: #4FC1E9;
       --cat-health-color: #EC87C0;
@@ -37,14 +40,13 @@
       background-color: var(--bg-color);
       color: var(--text-main);
       line-height: 1.5;
-      padding: 40px 20px;
+      padding: 40px 20px 60px 20px;
     }
 
     header {
       max-width: 1400px;
       margin: 0 auto 30px auto;
       text-align: center;
-      position: relative;
     }
 
     h1 {
@@ -59,8 +61,9 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      gap: 16px;
+      gap: 12px;
       flex-wrap: wrap;
+      margin-top: 8px;
     }
 
     .subtitle {
@@ -70,106 +73,135 @@
       font-size: 1.1rem;
     }
 
-    /* History Log Trigger Button */
-    .history-trigger-btn {
+    /* Action Buttons in Header */
+    .header-actions {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin: 20px auto 10px auto;
+      flex-wrap: wrap;
+    }
+
+    .action-btn {
       background-color: transparent;
-      color: #C99A3B;
-      border: 1px solid rgba(201, 154, 59, 0.4);
-      padding: 4px 14px;
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      padding: 8px 16px;
       border-radius: 20px;
-      font-size: 0.8rem;
+      font-size: 0.85rem;
       font-weight: 500;
       cursor: pointer;
       transition: all 0.2s ease;
-    }
-
-    .history-trigger-btn:hover {
-      background-color: rgba(201, 154, 59, 0.1);
-      border-color: #C99A3B;
-    }
-
-    /* Task Input Form Panel */
-    .form-container {
-      max-width: 950px;
-      margin: 0 auto 40px auto;
-      background: var(--panel-bg);
-      padding: 24px;
-      border-radius: 12px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-      border: 1px solid var(--border-color);
-    }
-
-    .task-form {
-      display: flex;
-      gap: 14px;
-      flex-wrap: wrap;
-      align-items: flex-end;
-    }
-
-    .form-group {
-      flex: 1;
-      min-width: 140px;
-      display: flex;
-      flex-direction: column;
+      display: inline-flex;
+      align-items: center;
       gap: 6px;
     }
 
-    .form-group.title-group {
-      flex: 2;
-      min-width: 200px;
-    }
-
-    .form-group.btn-group {
-      flex: 0 0 auto;
-      min-width: auto;
-    }
-
-    label {
-      font-size: 0.75rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
-      color: var(--text-muted);
-    }
-
-    input[type="text"], input[type="date"], select {
-      width: 100%;
-      padding: 10px 14px;
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      font-family: inherit;
-      font-size: 0.9rem;
-      color: var(--text-main);
-      background-color: var(--card-bg);
-      transition: all 0.2s ease;
-      outline: none;
-    }
-
-    input[type="text"]:focus, input[type="date"]:focus, select:focus {
+    .action-btn:hover {
+      background-color: rgba(237, 230, 214, 0.05);
       border-color: var(--text-muted);
-      box-shadow: 0 0 0 3px rgba(237, 230, 214, 0.1);
     }
 
-    input[type="date"]::-webkit-calendar-picker-indicator {
-      filter: invert(0.9);
-      cursor: pointer;
+    .action-btn.primary {
+      background-color: var(--gold-color);
+      color: #121E22;
+      border-color: var(--gold-color);
+      font-weight: 600;
     }
 
-    .submit-btn {
-      padding: 11px 24px;
-      background-color: #C99A3B;
+    .action-btn.primary:hover {
+      background-color: var(--gold-hover);
+      border-color: var(--gold-hover);
+    }
+
+    .action-btn.calendar-sync {
+      border-color: rgba(74, 144, 226, 0.4);
+      color: #7FB3EB;
+    }
+    
+    .action-btn.calendar-sync:hover {
+      background-color: rgba(74, 144, 226, 0.1);
+      border-color: var(--calendar-color);
+    }
+    
+    .action-btn.calendar-sync.connected {
+      background-color: rgba(142, 186, 153, 0.15);
+      border-color: #8EBA99;
+      color: #8EBA99;
+    }
+
+    /* Mobile Floating Action Button (FAB) */
+    .mobile-fab {
+      display: none;
+      position: fixed;
+      bottom: 76px;
+      right: 20px;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background-color: var(--gold-color);
       color: #121E22;
       border: none;
-      border-radius: 8px;
-      font-weight: 600;
-      font-size: 0.9rem;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+      font-size: 1.8rem;
+      align-items: center;
+      justify-content: center;
       cursor: pointer;
-      transition: background-color 0.2s ease;
-      white-space: nowrap;
+      z-index: 999;
+      transition: transform 0.2s active;
     }
 
-    .submit-btn:hover {
-      background-color: #E0AB43;
+    .mobile-fab:active {
+      transform: scale(0.95);
+    }
+
+    /* Mobile Bottom Navigation Bar Switcher */
+    .mobile-nav {
+      display: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background-color: var(--panel-bg);
+      border-top: 1px solid var(--border-color);
+      grid-template-columns: repeat(4, 1fr);
+      z-index: 1000;
+      box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
+    }
+
+    .mobile-nav-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 12px 6px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      cursor: pointer;
+    }
+
+    .mobile-nav-btn.active {
+      color: var(--gold-color);
+      background-color: rgba(237, 230, 214, 0.03);
+    }
+
+    .mobile-nav-btn .nav-count {
+      font-size: 0.7rem;
+      background-color: rgba(237, 230, 214, 0.1);
+      color: var(--text-main);
+      padding: 1px 6px;
+      border-radius: 10px;
+      margin-top: 2px;
+    }
+
+    .mobile-nav-btn.active .nav-count {
+      background-color: var(--gold-color);
+      color: #121E22;
     }
 
     /* Kanban Board Horizontal Layout */
@@ -265,7 +297,7 @@
       justify-content: space-between;
       align-items: flex-start;
       margin-bottom: 8px;
-      padding-right: 20px;
+      padding-right: 24px;
     }
 
     .card-text {
@@ -283,9 +315,10 @@
       border: none;
       color: var(--text-muted);
       cursor: pointer;
-      font-size: 0.9rem;
+      font-size: 1.1rem;
       line-height: 1;
       opacity: 0.6;
+      padding: 4px;
       transition: opacity 0.2s, color 0.2s;
     }
 
@@ -294,7 +327,7 @@
       color: var(--alert-color);
     }
 
-    /* Metadata badges section */
+    /* Metadata Badges */
     .card-meta {
       display: flex;
       gap: 6px;
@@ -339,11 +372,26 @@
       font-size: 0.85rem;
       color: var(--text-muted);
       text-align: center;
-      padding: 30px 0;
+      padding: 40px 0;
       font-style: italic;
     }
 
-    /* Pop-up Window Overlay View Container */
+    .mobile-action-select-wrapper {
+      display: none;
+      margin-top: 10px;
+      border-top: 1px solid var(--border-color);
+      padding-top: 10px;
+      width: 100%;
+    }
+
+    .mobile-move-select {
+      width: 100%;
+      background-color: var(--panel-bg);
+      font-size: 0.8rem;
+      padding: 6px 10px;
+    }
+
+    /* Pop-up Overlay Master Architecture */
     .modal-overlay {
       position: fixed;
       top: 0;
@@ -359,6 +407,7 @@
       pointer-events: none;
       transition: opacity 0.25s ease;
       z-index: 2000;
+      padding: 16px;
     }
 
     .modal-overlay.active {
@@ -370,9 +419,9 @@
       background-color: var(--panel-bg);
       border: 1px solid var(--border-color);
       border-radius: 14px;
-      width: 90%;
-      max-width: 650px;
-      max-height: 80vh;
+      width: 100%;
+      max-width: 550px;
+      max-height: 90vh;
       display: flex;
       flex-direction: column;
       box-shadow: 0 20px 50px rgba(0,0,0,0.5);
@@ -394,7 +443,7 @@
 
     .modal-title {
       font-family: 'Playfair Display', serif;
-      font-size: 1.5rem;
+      font-size: 1.4rem;
       font-weight: 600;
     }
 
@@ -402,9 +451,10 @@
       background: transparent;
       border: none;
       color: var(--text-main);
-      font-size: 1.4rem;
+      font-size: 1.5rem;
       cursor: pointer;
       line-height: 1;
+      padding: 8px;
     }
 
     .modal-content {
@@ -413,7 +463,67 @@
       flex-grow: 1;
     }
 
-    /* History Log Audit Item Layout */
+    /* Unified Task Creation View Architecture */
+    .task-form {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-muted);
+    }
+
+    input[type="text"], input[type="date"], select {
+      width: 100%;
+      min-height: 44px;
+      padding: 10px 14px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 0.95rem;
+      color: var(--text-main);
+      background-color: var(--card-bg);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input[type="text"]:focus, input[type="date"]:focus, select:focus {
+      border-color: var(--text-muted);
+    }
+
+    input[type="date"]::-webkit-calendar-picker-indicator {
+      filter: invert(0.9);
+    }
+
+    .submit-btn {
+      min-height: 46px;
+      margin-top: 10px;
+      background-color: var(--gold-color);
+      color: #121E22;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+
+    .submit-btn:hover {
+      background-color: var(--gold-hover);
+    }
+
+    /* History Audit List */
     .history-list {
       list-style: none;
       display: flex;
@@ -424,11 +534,11 @@
     .history-item {
       background-color: var(--card-bg);
       border: 1px solid var(--border-color);
-      padding: 12px 16px;
+      padding: 14px;
       border-radius: 8px;
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 6px;
     }
 
     .history-item-header {
@@ -439,12 +549,12 @@
     }
 
     .history-item-title {
-      font-size: 0.92rem;
+      font-size: 0.95rem;
       font-weight: 600;
     }
 
     .history-timestamp {
-      font-size: 0.78rem;
+      font-size: 0.75rem;
       color: #8EBA99;
       white-space: nowrap;
     }
@@ -461,33 +571,57 @@
       color: var(--text-muted);
       font-style: italic;
       padding: 40px 0;
-      font-size: 0.9rem;
-    }
-
-    /* Responsive adjustments */
-    @media (max-width: 1200px) {
-      .board {
-        grid-template-columns: repeat(4, 280px);
-      }
     }
 
     @media (max-width: 768px) {
       body {
-        padding: 20px 10px;
+        padding: 20px 14px 80px 14px;
       }
+      
       h1 {
         font-size: 2rem;
       }
-      .task-form {
-        flex-direction: column;
-        align-items: stretch;
+
+      .header-actions .action-btn.desktop-only-btn {
+        display: none;
       }
-      .form-group, .form-group.title-group, .form-group.btn-group {
-        width: 100%;
+
+      .mobile-fab {
+        display: flex;
       }
-      .submit-btn {
-        width: 100%;
-        padding: 12px;
+
+      .mobile-nav {
+        display: grid;
+      }
+
+      .board {
+        grid-template-columns: 1fr;
+        gap: 0;
+      }
+
+      .column {
+        display: none;
+        min-height: auto;
+        padding: 0;
+        background: transparent;
+        border: none;
+      }
+
+      .column.active-column {
+        display: flex;
+      }
+
+      .column-header {
+        display: none;
+      }
+
+      .card {
+        padding: 14px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      }
+
+      .mobile-action-select-wrapper {
+        display: block;
       }
     }
   </style>
@@ -498,62 +632,39 @@
     <h1>Task tracker</h1>
     <div class="subtitle-wrapper">
       <p class="subtitle">Streamlined flow, structured focus.</p>
-      <button class="history-trigger-btn" id="openHistoryBtn">⏱ View History Log</button>
+    </div>
+    <div class="header-actions">
+      <button class="action-btn primary desktop-only-btn" id="openTaskFormBtn">+ Add New Task</button>
+      <button class="action-btn calendar-sync" id="syncCalendarBtn">📅 Connect Google Calendar</button>
+      <button class="action-btn" id="openHistoryBtn">⏱ View History Log</button>
     </div>
   </header>
 
-  <div class="form-container">
-    <form class="task-form" id="taskForm">
-      <div class="form-group title-group">
-        <label for="taskTitle">Task Title</label>
-        <input type="text" id="taskTitle" placeholder="Describe the milestone..." required autocomplete="off">
-      </div>
-      
-      <div class="form-group">
-        <label for="taskPriority">Priority</label>
-        <select id="taskPriority" required>
-          <option value="3">High</option>
-          <option value="2" selected>Medium</option>
-          <option value="1">Low</option>
-        </select>
-      </div>
+  <button class="mobile-fab" id="mobileFabBtn" aria-label="Add new task">+</button>
 
-      <div class="form-group">
-        <label for="taskRecurrence">Recurrence</label>
-        <select id="taskRecurrence" required>
-          <option value="none" selected>None</option>
-          <option value="daily">Daily</option>
-          <option value="weekly">Weekly</option>
-          <option value="monthly">Monthly</option>
-          <option value="yearly">Yearly</option>
-        </select>
-      </div>
-
-      <div class="form-group">
-        <label for="taskDate">Target Date</label>
-        <input type="date" id="taskDate">
-      </div>
-
-      <div class="form-group">
-        <label for="taskCategory">Category</label>
-        <select id="taskCategory" required>
-          <option value="cat-home">Home & Chores</option>
-          <option value="cat-money">Money & Admin</option>
-          <option value="cat-health">Health & Self-Care</option>
-          <option value="cat-fun">Fun & Growth</option>
-        </select>
-      </div>
-
-      <div class="form-group btn-group">
-        <button type="submit" class="submit-btn">+ Add Task</button>
-      </div>
-    </form>
-  </div>
+  <nav class="mobile-nav" id="mobileNavRow">
+    <button class="mobile-nav-btn active" data-target="future">
+      <span>Future</span>
+      <span class="nav-count" id="nav-count-future">0</span>
+    </button>
+    <button class="mobile-nav-btn" data-target="this-week">
+      <span>This Wk</span>
+      <span class="nav-count" id="nav-count-this-week">0</span>
+    </button>
+    <button class="mobile-nav-btn" data-target="today">
+      <span>Today</span>
+      <span class="nav-count" id="nav-count-today">0</span>
+    </button>
+    <button class="mobile-nav-btn" data-target="completed">
+      <span>Done</span>
+      <span class="nav-count" id="nav-count-completed">0</span>
+    </button>
+  </nav>
 
   <div class="board-container">
     <div class="board">
       
-      <div class="column" id="future">
+      <div class="column active-column" id="future">
         <div class="column-header">
           <span class="column-title">Future</span>
           <span class="column-count" id="count-future">0</span>
@@ -588,6 +699,60 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="taskModal">
+    <div class="modal-window">
+      <div class="modal-header">
+        <h2 class="modal-title">Create New Task</h2>
+        <button class="close-modal-btn" id="closeTaskModalBtn">&#10005;</button>
+      </div>
+      <div class="modal-content">
+        <form class="task-form" id="taskForm">
+          <div class="form-group">
+            <label for="taskTitle">Task Title</label>
+            <input type="text" id="taskTitle" placeholder="Describe the milestone..." required autocomplete="off">
+          </div>
+          
+          <div class="form-group">
+            <label for="taskPriority">Priority</label>
+            <select id="taskPriority" required>
+              <option value="3">High</option>
+              <option value="2" selected>Medium</option>
+              <option value="1">Low</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="taskRecurrence">Recurrence</label>
+            <select id="taskRecurrence" required>
+              <option value="none" selected>None</option>
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+              <option value="yearly">Yearly</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="taskDate">Target Date</label>
+            <input type="date" id="taskDate">
+          </div>
+
+          <div class="form-group">
+            <label for="taskCategory">Category</label>
+            <select id="taskCategory" required>
+              <option value="cat-home">Home & Chores</option>
+              <option value="cat-money">Money & Admin</option>
+              <option value="cat-health">Health & Self-Care</option>
+              <option value="cat-fun">Fun & Growth</option>
+            </select>
+          </div>
+
+          <button type="submit" class="submit-btn">Save Task Entry</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="historyModal">
     <div class="modal-window">
       <div class="modal-header">
@@ -600,10 +765,18 @@
     </div>
   </div>
 
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
   <script>
     // --- State Management ---
     let tasks = [];
     let historyLog = [];
+    let googleAccessToken = null;
+
+    // --- Google Calendar Configuration Parameters ---
+    // Note: To utilize this in production, replace client_id with your parameter from the Google Cloud Console.
+    const GOOGLE_CLIENT_ID = '422591298498-appv1g3tm4kdm3etmugocep6f6rmj23v.apps.googleusercontent.com';
+    const CALENDAR_SCOPES = 'https://www.googleapis.com/auth/calendar.events.lite';
 
     const loadData = () => {
       const storedTasks = localStorage.getItem('tasktracker-tasks');
@@ -623,7 +796,6 @@
 
       if (storedHistory) {
         historyLog = JSON.parse(storedHistory);
-        // Execute automatic clean-up loop for entries older than 2 years
         pruneExpiredHistoryLog();
       }
     };
@@ -651,19 +823,18 @@
       if (dataChanged) saveTasks();
     };
 
-    // --- History Log Retention Limit (2 Years Auto-Pruning Engine) ---
+    // --- History Log Retention Limit (2 Years Auto-Pruning) ---
     const pruneExpiredHistoryLog = () => {
       const TWO_YEARS_MS = 2 * 365 * 24 * 60 * 60 * 1000;
       const now = Date.now();
       let dataChanged = false;
 
       historyLog = historyLog.filter(entry => {
-        // Evaluate numerical timestamp key attached to the log item definition
         if (entry.logTimestamp) {
           const timeElapsed = now - entry.logTimestamp;
           if (timeElapsed > TWO_YEARS_MS) {
             dataChanged = true;
-            return false; // Permanently drops entry out of history loop
+            return false; 
           }
         }
         return true;
@@ -672,16 +843,116 @@
       if (dataChanged) saveHistory();
     };
 
-    // --- DOM Reference Mapping ---
+    // --- Google Calendar Sync Handlers ---
+    const syncBtn = document.getElementById('syncCalendarBtn');
+    let tokenClient;
+
+    window.onload = () => {
+      if (typeof google !== 'undefined') {
+        tokenClient = google.accounts.oauth2.initTokenClient({
+          client_id: GOOGLE_CLIENT_ID,
+          scope: CALENDAR_SCOPES,
+          callback: (tokenResponse) => {
+            if (tokenResponse.access_token) {
+              googleAccessToken = tokenResponse.access_token;
+              syncBtn.textContent = '✓ Calendar Connected';
+              syncBtn.classList.add('connected');
+            }
+          },
+        });
+      }
+    };
+
+    syncBtn.addEventListener('click', () => {
+      if (!googleAccessToken && tokenClient) {
+        tokenClient.requestAccessToken({ prompt: 'consent' });
+      }
+    });
+
+    const pushTaskToGoogleCalendar = async (task) => {
+      if (!googleAccessToken || !task.date) return;
+
+      const eventPayload = {
+        summary: task.title,
+        description: `Priority: ${getPriorityLabel(task.priority)} | Tracker Category: ${task.category}`,
+        start: { date: task.date },
+        end: { date: task.date } // All-day entry standard mapping
+      };
+
+      try {
+        const response = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${googleAccessToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(eventPayload)
+        });
+        
+        if (!response.ok) {
+          console.error('Failed to sync to Google Calendar:', await response.text());
+        }
+      } catch (err) {
+        console.error('Network error during Google Calendar push:', err);
+      }
+    };
+
+    // --- DOM Reference Mapping Matrix ---
     const form = document.getElementById('taskForm');
     const cardLists = document.querySelectorAll('.card-list');
     const columns = document.querySelectorAll('.column');
     
+    const taskModal = document.getElementById('taskModal');
+    const openTaskFormBtn = document.getElementById('openTaskFormBtn');
+    const mobileFabBtn = document.getElementById('mobileFabBtn');
+    const closeTaskModalBtn = document.getElementById('closeTaskModalBtn');
+
     const historyModal = document.getElementById('historyModal');
     const openHistoryBtn = document.getElementById('openHistoryBtn');
     const closeHistoryBtn = document.getElementById('closeHistoryBtn');
     const historyContainer = document.getElementById('historyContainer');
+    
+    const mobileNavButtons = document.querySelectorAll('.mobile-nav-btn');
 
+    // --- Modal View Handling Controllers ---
+    const openModal = (modalEl) => modalEl.classList.add('active');
+    const closeModal = (modalEl) => modalEl.classList.remove('active');
+
+    [openTaskFormBtn, mobileFabBtn].forEach(btn => {
+      if(btn) btn.addEventListener('click', () => openModal(taskModal));
+    });
+    closeTaskModalBtn.addEventListener('click', () => closeModal(taskModal));
+
+    openHistoryBtn.addEventListener('click', () => {
+      renderHistoryLog();
+      openModal(historyModal);
+    });
+    closeHistoryBtn.addEventListener('click', () => closeModal(historyModal));
+
+    [taskModal, historyModal].forEach(modal => {
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal(modal);
+      });
+    });
+
+    // --- Smartphone Layout Navigation Control Configuration ---
+    mobileNavButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        mobileNavButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        
+        const targetColumnId = btn.getAttribute('data-target');
+        columns.forEach(col => {
+          if (col.id === targetColumnId) {
+            col.classList.add('active-column');
+          } else {
+            col.classList.remove('active-column');
+          }
+        });
+      });
+    });
+
+    // --- Task Record Storage Creation Lifecycle ---
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       const titleInput = document.getElementById('taskTitle');
@@ -690,6 +961,9 @@
       const dateInput = document.getElementById('taskDate');
       const catSelect = document.getElementById('taskCategory');
       
+      const targetColumn = window.innerWidth <= 768 ? 
+        (document.querySelector('.mobile-nav-btn.active').getAttribute('data-target') || 'future') : 'future';
+
       const newTask = {
         id: Date.now().toString(),
         title: titleInput.value.trim(),
@@ -697,21 +971,32 @@
         recurrence: recurrenceSelect.value,
         date: dateInput.value,
         category: catSelect.value,
-        column: 'future'
+        column: targetColumn
       };
+
+      if (targetColumn === 'completed') {
+        newTask.completedTimestamp = Date.now();
+        logTaskCompletion(newTask);
+      }
 
       tasks.push(newTask);
       saveTasks();
       renderTasks();
       
+      // Dispatch async payload transmission if connected
+      if (newTask.date) {
+        pushTaskToGoogleCalendar(newTask);
+      }
+      
+      closeModal(taskModal);
+      
       titleInput.value = '';
       dateInput.value = '';
       prioritySelect.value = '2';
       recurrenceSelect.value = 'none';
-      titleInput.focus();
     });
 
-    // --- Drag and Drop Management ---
+    // --- Drag and Drop Management Flow ---
     let draggedCardId = null;
 
     const handleDragStart = (e) => {
@@ -740,7 +1025,6 @@
       }
     };
 
-    // --- Date Multipliers Engine ---
     const calculateNextDate = (currentDateStr, recurrence) => {
       let baseDate = currentDateStr ? new Date(currentDateStr) : new Date();
       if (isNaN(baseDate.getTime())) baseDate = new Date();
@@ -755,7 +1039,6 @@
       return baseDate.toISOString().split('T')[0];
     };
 
-    // --- Permanent Completion Audit Logger ---
     const logTaskCompletion = (task) => {
       const now = new Date();
       const timestampStr = now.toLocaleDateString() + ' ' + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -766,7 +1049,7 @@
         priority: task.priority,
         category: task.category,
         completedAt: timestampStr,
-        logTimestamp: Date.now(), // Attached parameters drive the 2-year purging metric safely
+        logTimestamp: Date.now(),
         originalTargetDate: task.date || 'No target date'
       };
 
@@ -774,46 +1057,48 @@
       saveHistory();
     };
 
+    const executeMoveAction = (taskId, targetColumnId) => {
+      const currentTask = tasks.find(t => t.id === taskId);
+      if (!currentTask || currentTask.column === targetColumnId) return;
+
+      const structuralOrigin = currentTask.column;
+      
+      if (targetColumnId === 'completed' && structuralOrigin !== 'completed') {
+        logTaskCompletion(currentTask);
+        currentTask.completedTimestamp = Date.now();
+
+        if (currentTask.recurrence !== 'none') {
+          const nextTargetDate = calculateNextDate(currentTask.date, currentTask.recurrence);
+          let nextColumn = 'future';
+          const todayStr = new Date().toISOString().split('T')[0];
+          if (nextTargetDate === todayStr) nextColumn = 'today';
+
+          const recurringCopy = {
+            ...currentTask,
+            id: (Date.now() + 1).toString(),
+            date: nextTargetDate,
+            column: nextColumn
+          };
+          delete recurringCopy.completedTimestamp; 
+          
+          currentTask.recurrence = 'none'; 
+          tasks.push(recurringCopy);
+          if (recurringCopy.date) pushTaskToGoogleCalendar(recurringCopy);
+        }
+      } else if (targetColumnId !== 'completed') {
+        delete currentTask.completedTimestamp;
+      }
+
+      currentTask.column = targetColumnId;
+      saveTasks();
+      renderTasks();
+    };
+
     const handleDrop = (e) => {
       e.preventDefault();
       const targetColumnEl = e.target.closest('.column');
       if (!targetColumnEl || !draggedCardId) return;
-
-      const targetColumnId = targetColumnEl.id;
-      const currentTask = tasks.find(t => t.id === draggedCardId);
-
-      if (currentTask) {
-        const structuralOrigin = currentTask.column;
-        
-        if (targetColumnId === 'completed' && structuralOrigin !== 'completed') {
-          logTaskCompletion(currentTask);
-          currentTask.completedTimestamp = Date.now();
-
-          if (currentTask.recurrence !== 'none') {
-            const nextTargetDate = calculateNextDate(currentTask.date, currentTask.recurrence);
-            let nextColumn = 'future';
-            const todayStr = new Date().toISOString().split('T')[0];
-            if (nextTargetDate === todayStr) nextColumn = 'today';
-
-            const recurringCopy = {
-              ...currentTask,
-              id: (Date.now() + 1).toString(),
-              date: nextTargetDate,
-              column: nextColumn
-            };
-            delete recurringCopy.completedTimestamp; 
-            
-            currentTask.recurrence = 'none'; 
-            tasks.push(recurringCopy);
-          }
-        } else if (targetColumnId !== 'completed') {
-          delete currentTask.completedTimestamp;
-        }
-
-        currentTask.column = targetColumnId;
-        saveTasks();
-        renderTasks();
-      }
+      executeMoveAction(draggedCardId, targetColumnEl.id);
     };
 
     // --- UI Presentation Layer Rendering ---
@@ -850,7 +1135,10 @@
       const deleteBtn = document.createElement('button');
       deleteBtn.className = 'card-delete';
       deleteBtn.innerHTML = '&#10005;';
-      deleteBtn.addEventListener('click', () => deleteTask(task.id));
+      deleteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        deleteTask(task.id);
+      });
 
       const metaRow = document.createElement('div');
       metaRow.className = 'card-meta';
@@ -874,9 +1162,28 @@
         metaRow.appendChild(dateBadge);
       }
 
+      const selectWrapper = document.createElement('div');
+      selectWrapper.className = 'mobile-action-select-wrapper';
+      
+      const moveSelect = document.createElement('select');
+      moveSelect.className = 'mobile-move-select';
+      moveSelect.innerHTML = `
+        <option value="" disabled selected>Move item to...</option>
+        <option value="future" ${task.column === 'future' ? 'disabled' : ''}>Future</option>
+        <option value="this-week" ${task.column === 'this-week' ? 'disabled' : ''}>This Week</option>
+        <option value="today" ${task.column === 'today' ? 'disabled' : ''}>Today</option>
+        <option value="completed" ${task.column === 'completed' ? 'disabled' : ''}>Completed</option>
+      `;
+      moveSelect.addEventListener('change', (e) => {
+        executeMoveAction(task.id, e.target.value);
+      });
+      
+      selectWrapper.appendChild(moveSelect);
+
       li.appendChild(headerRow);
       li.appendChild(deleteBtn);
       li.appendChild(metaRow);
+      li.appendChild(selectWrapper);
       
       return li;
     };
@@ -890,7 +1197,11 @@
     const updateColumnCounters = () => {
       ['future', 'this-week', 'today', 'completed'].forEach(id => {
         const count = tasks.filter(t => t.column === id).length;
-        document.getElementById(`count-${id}`).textContent = count;
+        const desktopCounter = document.getElementById(`count-${id}`);
+        const mobileCounter = document.getElementById(`nav-count-${id}`);
+        
+        if(desktopCounter) desktopCounter.textContent = count;
+        if(mobileCounter) mobileCounter.textContent = count;
       });
     };
 
@@ -921,7 +1232,6 @@
       updateColumnCounters();
     };
 
-    // --- Pop-Up Window / Modal Render Module ---
     const renderHistoryLog = () => {
       historyContainer.innerHTML = '';
       
@@ -951,18 +1261,6 @@
 
       historyContainer.appendChild(ul);
     };
-
-    // --- Modal Interface Action Bindings ---
-    openHistoryBtn.addEventListener('click', () => {
-      renderHistoryLog();
-      historyModal.classList.add('active');
-    });
-
-    closeHistoryBtn.addEventListener('click', () => historyModal.classList.remove('active'));
-    
-    historyModal.addEventListener('click', (e) => {
-      if (e.target === historyModal) historyModal.classList.remove('active');
-    });
 
     // --- Bootstrap Hookup ---
     columns.forEach(col => {
