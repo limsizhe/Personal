@@ -1,659 +1,979 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ledger — Personal Dashboard</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
-<style>
-  :root{
-    --ink-deep:#16252A;
-    --ink-panel:#1F3338;
-    --paper:#F1E9D8;
-    --paper-dim:#E4D9C2;
-    --paper-dim2:#D9CBAC;
-    --text-on-paper:#2A2118;
-    --text-on-paper-dim:#6b6052;
-    --text-on-dark:#EDE6D6;
-    --text-on-dark-dim:#A9B8B2;
-    --clay:#D2784F;
-    --clay-dim:#a85e3d;
-    --gold:#C99A3B;
-    --sage:#6E9B7B;
-    --rule:rgba(42,33,24,0.16);
-    --rule-dark:rgba(237,230,214,0.14);
-  }
-  *{box-sizing:border-box;}
-  body{
-    margin:0;
-    background:var(--ink-deep);
-    color:var(--text-on-dark);
-    font-family:'Inter',sans-serif;
-    min-height:100vh;
-  }
-  .app{opacity:0; transition:opacity .4s ease;}
-  .app.ready{opacity:1;}
-  .loading-screen{
-    min-height:100vh; display:flex; align-items:center; justify-content:center;
-    font-family:'JetBrains Mono'; color:var(--text-on-dark-dim); font-size:13px; letter-spacing:.05em;
-  }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Task Tracker — Personal Kanban</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;1,400&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      /* Deep Dark Mode Palette */
+      --bg-color: #121E22;
+      --panel-bg: #1A2A2F;
+      --card-bg: #22373E;
+      --text-main: #EDE6D6;
+      --text-muted: #A9B8B2;
+      --border-color: rgba(237, 230, 214, 0.12);
+      --alert-color: #D2784F;
+      
+      /* Subtle Muted Category Indicator Border/Accents */
+      --cat-home-color: #5D9CEC;
+      --cat-money-color: #4FC1E9;
+      --cat-health-color: #EC87C0;
+      --cat-fun-color: #F6BB42;
+    }
 
-  .header{
-    padding:36px 28px 30px;
-    background:linear-gradient(180deg, var(--ink-deep), var(--ink-panel));
-    border-bottom:1px solid var(--rule-dark);
-  }
-  .header-inner{max-width:1100px; margin:0 auto;}
-  .eyebrow{
-    font-family:'JetBrains Mono'; font-size:11px; letter-spacing:.14em; text-transform:uppercase;
-    color:var(--gold); margin:0 0 8px;
-  }
-  .greeting{
-    font-family:'Fraunces'; font-weight:700; font-size:clamp(26px,4vw,38px);
-    margin:0 0 14px; line-height:1.1;
-  }
-  .summary-chips{display:flex; gap:22px; flex-wrap:wrap; font-family:'JetBrains Mono'; font-size:13px; color:var(--text-on-dark-dim);}
-  .summary-chips strong{color:var(--text-on-dark); font-weight:600;}
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
-  .grid{
-    display:grid; grid-template-columns:1fr 1fr; gap:20px;
-    padding:24px 28px; max-width:1100px; margin:0 auto;
-  }
-  .full-width{grid-column:1 / -1;}
-  @media (max-width:760px){ .grid{grid-template-columns:1fr;} }
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      line-height: 1.5;
+      padding: 40px 20px;
+    }
 
-  .card{
-    background:var(--paper); color:var(--text-on-paper); border-radius:12px;
-    padding:24px 24px 20px;
-    box-shadow:0 1px 0 rgba(0,0,0,.18), 0 10px 28px rgba(0,0,0,.28);
-  }
-  .card-title-row{display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; gap:12px;}
-  .card-eyebrow{
-    font-family:'JetBrains Mono'; font-size:10px; letter-spacing:.12em; text-transform:uppercase;
-    color:var(--clay); margin:0 0 4px;
-  }
-  .card-title{font-family:'Fraunces'; font-weight:600; font-size:20px; margin:0;}
-  .hint-btn{
-    background:none; border:none; font-family:'JetBrains Mono'; font-size:11px;
-    color:var(--text-on-paper-dim); cursor:pointer; text-decoration:underline; padding:0;
-  }
-  .hint-btn:hover{color:var(--clay);}
+    header {
+      max-width: 1400px;
+      margin: 0 auto 30px auto;
+      text-align: center;
+      position: relative;
+    }
 
-  /* Finance */
-  .budget-row{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:8px;}
-  .budget-edit{display:flex; align-items:baseline; gap:6px; font-family:'JetBrains Mono'; font-size:13px; color:var(--text-on-paper-dim);}
-  .budget-edit input{
-    width:84px; font-family:'JetBrains Mono'; font-size:13px; border:none; border-bottom:1px solid var(--rule);
-    background:transparent; padding:2px 0; color:var(--text-on-paper);
-  }
-  .budget-edit input:focus{outline:none; border-bottom-color:var(--clay);}
-  .remaining{font-family:'JetBrains Mono'; font-weight:700; font-size:30px; margin:2px 0 10px;}
-  .remaining small{font-size:13px; font-weight:500; color:var(--text-on-paper-dim);}
-  .bar-track{height:8px; border-radius:4px; background:var(--paper-dim2); overflow:hidden; margin-bottom:6px;}
-  .bar-fill{height:100%; border-radius:4px; transition:width .3s ease;}
-  .bar-caption{font-family:'JetBrains Mono'; font-size:11px; color:var(--text-on-paper-dim); margin-bottom:16px;}
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-weight: 600;
+      font-size: 2.5rem;
+      margin-bottom: 8px;
+      letter-spacing: -0.5px;
+    }
 
-  .field-row{display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap;}
-  .field-row input[type=text], .field-row input[type=number], .field-row select{
-    font-family:'Inter'; font-size:13px; border:none; border-bottom:1px solid var(--rule);
-    background:transparent; padding:7px 2px; color:var(--text-on-paper);
-  }
-  .field-row input::placeholder{color:var(--text-on-paper-dim);}
-  .field-row input:focus, .field-row select:focus{outline:none; border-bottom-color:var(--clay);}
-  .amt-input{width:70px;}
-  .note-input{flex:1; min-width:90px;}
-  .cat-select{min-width:90px;}
-  .add-btn{
-    font-family:'JetBrains Mono'; font-size:12px; font-weight:600; letter-spacing:.03em;
-    background:var(--ink-deep); color:var(--paper); border:none; border-radius:6px;
-    padding:8px 14px; cursor:pointer; transition:background .15s;
-  }
-  .add-btn:hover{background:var(--clay-dim);}
+    .subtitle-wrapper {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
 
-  .expense-list{list-style:none; margin:0 0 18px; padding:0; max-height:158px; overflow-y:auto;}
-  .expense-list li{
-    display:flex; justify-content:space-between; align-items:center; gap:8px;
-    padding:7px 0; border-bottom:1px solid var(--rule); font-size:13px;
-  }
-  .exp-meta{display:flex; flex-direction:column; min-width:0;}
-  .exp-cat{font-family:'JetBrains Mono'; font-size:10px; letter-spacing:.06em; text-transform:uppercase; color:var(--text-on-paper-dim);}
-  .exp-note{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-  .exp-amt{font-family:'JetBrains Mono'; font-weight:600; flex:0 0 auto;}
-  .del-x{background:none; border:none; cursor:pointer; color:var(--text-on-paper-dim); font-size:14px; line-height:1; padding:2px 4px;}
-  .del-x:hover{color:var(--clay);}
-  .empty-note{font-size:12.5px; color:var(--text-on-paper-dim); padding:6px 0 16px; font-style:italic;}
+    .subtitle {
+      font-family: 'Playfair Display', serif;
+      font-style: italic;
+      color: var(--text-muted);
+      font-size: 1.1rem;
+    }
 
-  .cat-breakdown{margin-top:4px;}
-  .cat-bar-row{display:grid; grid-template-columns:64px 1fr 44px; align-items:center; gap:8px; margin-bottom:6px; font-size:11px; font-family:'JetBrains Mono'; color:var(--text-on-paper-dim);}
-  .cat-bar-track{height:6px; border-radius:3px; background:var(--paper-dim2); overflow:hidden;}
-  .cat-bar-fill{height:100%; background:var(--clay); border-radius:3px;}
+    /* History Log Trigger Button */
+    .history-trigger-btn {
+      background-color: transparent;
+      color: #C99A3B;
+      border: 1px solid rgba(201, 154, 59, 0.4);
+      padding: 4px 14px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
 
-  /* Habits */
-  .habit-row{margin-bottom:18px;}
-  .habit-row:last-of-type{margin-bottom:8px;}
-  .habit-top{display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;}
-  .habit-name{font-weight:600; font-size:14px;}
-  .habit-streak{font-family:'JetBrains Mono'; font-size:12px; color:var(--gold); font-weight:600;}
-  .chain{display:flex; align-items:center; margin:2px 0;}
-  .bead{
-    width:11px; height:11px; border-radius:50%; background:var(--paper-dim2);
-    border:1.5px solid var(--rule); flex:0 0 auto; cursor:pointer; transition:transform .12s;
-  }
-  .bead:hover{transform:scale(1.3);}
-  .bead.done{background:var(--gold); border-color:var(--gold); box-shadow:0 0 0 3px rgba(201,154,59,.22);}
-  .thread{flex:1 1 auto; height:2px; margin:0 2px; min-width:4px;
-    background-image:repeating-linear-gradient(to right, var(--rule) 0 3px, transparent 3px 7px);}
-  .thread.solid{background-image:none; background-color:var(--gold);}
-  .habit-del{background:none;border:none;cursor:pointer;color:var(--text-on-paper-dim);font-size:12px;}
-  .habit-del:hover{color:var(--clay);}
+    .history-trigger-btn:hover {
+      background-color: rgba(201, 154, 59, 0.1);
+      border-color: #C99A3B;
+    }
 
-  /* Todos */
-  .todo-list{list-style:none; margin:0; padding:0;}
-  .todo-list li{display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--rule);}
-  .todo-list input[type=checkbox]{width:16px; height:16px; accent-color:var(--sage); cursor:pointer; flex:0 0 auto;}
-  .todo-text{flex:1; font-size:14px;}
-  .todo-text.done{text-decoration:line-through; color:var(--text-on-paper-dim);}
+    /* Task Input Form Panel */
+    .form-container {
+      max-width: 950px;
+      margin: 0 auto 40px auto;
+      background: var(--panel-bg);
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--border-color);
+    }
 
-  .footer{
-    max-width:1100px; margin:0 auto; padding:8px 28px 40px; display:flex; justify-content:space-between;
-    align-items:center; flex-wrap:wrap; gap:8px;
-    font-family:'JetBrains Mono'; font-size:11px; color:var(--text-on-dark-dim);
-  }
-  .footer button{
-    background:none; border:none; color:var(--text-on-dark-dim); font-family:'JetBrains Mono'; font-size:11px;
-    text-decoration:underline; cursor:pointer; padding:0;
-  }
-  .footer button:hover{color:var(--clay);}
+    .task-form {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      align-items: flex-end;
+    }
 
-  .toast{
-    position:fixed; bottom:20px; right:20px; background:var(--ink-panel); color:var(--text-on-dark);
-    border:1px solid var(--rule-dark); padding:10px 16px; border-radius:8px; font-size:13px;
-    font-family:'Inter'; opacity:0; transform:translateY(8px); transition:all .25s ease; pointer-events:none;
-  }
-  .toast.show{opacity:1; transform:translateY(0);}
-</style>
+    .form-group {
+      flex: 1;
+      min-width: 140px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-group.title-group {
+      flex: 2;
+      min-width: 200px;
+    }
+
+    .form-group.btn-group {
+      flex: 0 0 auto;
+      min-width: auto;
+    }
+
+    label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-muted);
+    }
+
+    input[type="text"], input[type="date"], select {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 0.9rem;
+      color: var(--text-main);
+      background-color: var(--card-bg);
+      transition: all 0.2s ease;
+      outline: none;
+    }
+
+    input[type="text"]:focus, input[type="date"]:focus, select:focus {
+      border-color: var(--text-muted);
+      box-shadow: 0 0 0 3px rgba(237, 230, 214, 0.1);
+    }
+
+    input[type="date"]::-webkit-calendar-picker-indicator {
+      filter: invert(0.9);
+      cursor: pointer;
+    }
+
+    .submit-btn {
+      padding: 11px 24px;
+      background-color: #C99A3B;
+      color: #121E22;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .submit-btn:hover {
+      background-color: #E0AB43;
+    }
+
+    /* Kanban Board Horizontal Layout */
+    .board-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      overflow-x: auto;
+      padding-bottom: 20px;
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(280px, 1fr));
+      gap: 20px;
+      align-items: start;
+    }
+
+    .column {
+      background-color: var(--panel-bg);
+      border-radius: 12px;
+      padding: 16px;
+      min-height: 600px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      border: 1px solid transparent;
+      transition: all 0.2s ease;
+    }
+
+    .column.drag-over {
+      background-color: #22373E;
+      border-color: var(--border-color);
+    }
+
+    .column-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .column-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: var(--text-main);
+    }
+
+    .column-count {
+      font-size: 0.8rem;
+      background-color: rgba(237, 230, 214, 0.1);
+      padding: 2px 8px;
+      border-radius: 20px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .card-list {
+      list-style-type: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      flex-grow: 1;
+      min-height: 500px;
+    }
+
+    /* Task Cards Layout */
+    .card {
+      background-color: var(--card-bg);
+      border-radius: 8px;
+      padding: 16px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+      border: 1px solid var(--border-color);
+      border-left: 4px solid transparent;
+      cursor: grab;
+      position: relative;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      user-select: none;
+    }
+
+    .card:active {
+      cursor: grabbing;
+    }
+
+    .card.dragging {
+      opacity: 0.4;
+      transform: scale(0.98);
+    }
+
+    .card-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 8px;
+      padding-right: 20px;
+    }
+
+    .card-text {
+      font-size: 0.95rem;
+      font-weight: 500;
+      word-wrap: break-word;
+      color: var(--text-main);
+    }
+
+    .card-delete {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 0.9rem;
+      line-height: 1;
+      opacity: 0.6;
+      transition: opacity 0.2s, color 0.2s;
+    }
+
+    .card-delete:hover {
+      opacity: 1;
+      color: var(--alert-color);
+    }
+
+    /* Metadata badges section */
+    .card-meta {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-top: 10px;
+    }
+
+    .badge {
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .badge.priority-3 { background-color: rgba(210, 120, 79, 0.2); color: #E28F6B; border: 1px solid rgba(210, 120, 79, 0.3); }
+    .badge.priority-2 { background-color: rgba(201, 154, 59, 0.2); color: #DCB462; border: 1px solid rgba(201, 154, 59, 0.3); }
+    .badge.priority-1 { background-color: rgba(169, 184, 178, 0.15); color: var(--text-muted); }
+
+    .badge.recurring-badge {
+      background-color: rgba(110, 155, 123, 0.15);
+      color: #8EBA99;
+      border: 1px solid rgba(110, 155, 123, 0.25);
+    }
+
+    .card-date {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .card.cat-home { border-left-color: var(--cat-home-color); }
+    .card.cat-money { border-left-color: var(--cat-money-color); }
+    .card.cat-health { border-left-color: var(--cat-health-color); }
+    .card.cat-fun { border-left-color: var(--cat-fun-color); }
+
+    .empty-note {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      text-align: center;
+      padding: 30px 0;
+      font-style: italic;
+    }
+
+    /* Pop-up Window Overlay View Container */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(18, 30, 34, 0.85);
+      backdrop-filter: blur(4px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+      z-index: 2000;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-window {
+      background-color: var(--panel-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      width: 90%;
+      max-width: 650px;
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+      transform: translateY(20px);
+      transition: transform 0.25s ease;
+    }
+
+    .modal-overlay.active .modal-window {
+      transform: translateY(0);
+    }
+
+    .modal-header {
+      padding: 20px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+
+    .close-modal-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-main);
+      font-size: 1.4rem;
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    .modal-content {
+      padding: 20px;
+      overflow-y: auto;
+      flex-grow: 1;
+    }
+
+    /* History Log Audit Item Layout */
+    .history-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .history-item {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border-color);
+      padding: 12px 16px;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .history-item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .history-item-title {
+      font-size: 0.92rem;
+      font-weight: 600;
+    }
+
+    .history-timestamp {
+      font-size: 0.78rem;
+      color: #8EBA99;
+      white-space: nowrap;
+    }
+
+    .history-item-details {
+      display: flex;
+      gap: 8px;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .history-empty {
+      text-align: center;
+      color: var(--text-muted);
+      font-style: italic;
+      padding: 40px 0;
+      font-size: 0.9rem;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 1200px) {
+      .board {
+        grid-template-columns: repeat(4, 280px);
+      }
+    }
+
+    @media (max-width: 768px) {
+      body {
+        padding: 20px 10px;
+      }
+      h1 {
+        font-size: 2rem;
+      }
+      .task-form {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .form-group, .form-group.title-group, .form-group.btn-group {
+        width: 100%;
+      }
+      .submit-btn {
+        width: 100%;
+        padding: 12px;
+      }
+    }
+  </style>
 </head>
 <body>
 
-<div id="loading" class="loading-screen">setting the table…</div>
-<div id="app" class="app">
-
-  <div class="header">
-    <div class="header-inner">
-      <p class="eyebrow" id="dateLine">—</p>
-      <h1 class="greeting" id="greeting">—</h1>
-      <div class="summary-chips" id="summaryChips"></div>
+  <header>
+    <h1>Task tracker</h1>
+    <div class="subtitle-wrapper">
+      <p class="subtitle">Streamlined flow, structured focus.</p>
+      <button class="history-trigger-btn" id="openHistoryBtn">⏱ View History Log</button>
     </div>
-  </div>
+  </header>
 
-  <div class="grid">
-
-    <!-- Finance card -->
-    <div class="card">
-      <div class="card-title-row">
-        <div>
-          <p class="card-eyebrow">Finance</p>
-          <h2 class="card-title">This month</h2>
-        </div>
-        <button class="hint-btn" id="resetMonthBtn">reset month</button>
+  <div class="form-container">
+    <form class="task-form" id="taskForm">
+      <div class="form-group title-group">
+        <label for="taskTitle">Task Title</label>
+        <input type="text" id="taskTitle" placeholder="Describe the milestone..." required autocomplete="off">
       </div>
-
-      <div class="budget-row">
-        <div class="budget-edit">
-          budget $<input type="number" id="budgetInput" min="0" step="1">
-        </div>
-      </div>
-
-      <div class="remaining" id="remainingAmt">$0 <small>left</small></div>
-      <div class="bar-track"><div class="bar-fill" id="budgetBar"></div></div>
-      <div class="bar-caption" id="budgetCaption">—</div>
-
-      <div class="field-row">
-        <input type="number" class="amt-input" id="expAmt" placeholder="amount" min="0" step="0.01">
-        <select class="cat-select" id="expCat">
-          <option>Food</option>
-          <option>Transport</option>
-          <option>Bills</option>
-          <option>Fun</option>
-          <option>Other</option>
+      
+      <div class="form-group">
+        <label for="taskPriority">Priority</label>
+        <select id="taskPriority" required>
+          <option value="3">High</option>
+          <option value="2" selected>Medium</option>
+          <option value="1">Low</option>
         </select>
-        <input type="text" class="note-input" id="expNote" placeholder="note (optional)">
-        <button class="add-btn" id="addExpBtn">+ Add</button>
       </div>
 
-      <ul class="expense-list" id="expenseList"></ul>
-      <div class="cat-breakdown" id="catBreakdown"></div>
-    </div>
-
-    <!-- Habits card -->
-    <div class="card">
-      <div class="card-title-row">
-        <div>
-          <p class="card-eyebrow">Streaks</p>
-          <h2 class="card-title">Habits</h2>
-        </div>
+      <div class="form-group">
+        <label for="taskRecurrence">Recurrence</label>
+        <select id="taskRecurrence" required>
+          <option value="none" selected>None</option>
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+          <option value="monthly">Monthly</option>
+          <option value="yearly">Yearly</option>
+        </select>
       </div>
 
-      <div class="field-row">
-        <input type="text" class="note-input" id="habitName" placeholder="new habit, e.g. Stretch">
-        <button class="add-btn" id="addHabitBtn">+ Add</button>
+      <div class="form-group">
+        <label for="taskDate">Target Date</label>
+        <input type="date" id="taskDate">
       </div>
 
-      <div id="habitsContainer"></div>
-    </div>
-
-    <!-- Todos card -->
-    <div class="card full-width">
-      <div class="card-title-row">
-        <div>
-          <p class="card-eyebrow">Quick list</p>
-          <h2 class="card-title">Today</h2>
-        </div>
+      <div class="form-group">
+        <label for="taskCategory">Category</label>
+        <select id="taskCategory" required>
+          <option value="cat-home">Home & Chores</option>
+          <option value="cat-money">Money & Admin</option>
+          <option value="cat-health">Health & Self-Care</option>
+          <option value="cat-fun">Fun & Growth</option>
+        </select>
       </div>
 
-      <div class="field-row">
-        <input type="text" class="note-input" id="todoText" placeholder="add something to do…">
-        <button class="add-btn" id="addTodoBtn">+ Add</button>
+      <div class="form-group btn-group">
+        <button type="submit" class="submit-btn">+ Add Task</button>
       </div>
-
-      <ul class="todo-list" id="todoList"></ul>
-    </div>
-
+    </form>
   </div>
 
-  <div class="footer">
-    <span>saved automatically · private to you</span>
-    <button id="clearAllBtn">clear all dashboard data</button>
+  <div class="board-container">
+    <div class="board">
+      
+      <div class="column" id="future">
+        <div class="column-header">
+          <span class="column-title">Future</span>
+          <span class="column-count" id="count-future">0</span>
+        </div>
+        <ul class="card-list" data-column="future"></ul>
+      </div>
+
+      <div class="column" id="this-week">
+        <div class="column-header">
+          <span class="column-title">This Week</span>
+          <span class="column-count" id="count-this-week">0</span>
+        </div>
+        <ul class="card-list" data-column="this-week"></ul>
+      </div>
+
+      <div class="column" id="today">
+        <div class="column-header">
+          <span class="column-title">Today</span>
+          <span class="column-count" id="count-today">0</span>
+        </div>
+        <ul class="card-list" data-column="today"></ul>
+      </div>
+
+      <div class="column" id="completed">
+        <div class="column-header">
+          <span class="column-title">Completed</span>
+          <span class="column-count" id="count-completed">0</span>
+        </div>
+        <ul class="card-list" data-column="completed"></ul>
+      </div>
+
+    </div>
   </div>
 
-</div>
+  <div class="modal-overlay" id="historyModal">
+    <div class="modal-window">
+      <div class="modal-header">
+        <h2 class="modal-title">History Log</h2>
+        <button class="close-modal-btn" id="closeHistoryBtn">&#10005;</button>
+      </div>
+      <div class="modal-content">
+        <div id="historyContainer"></div>
+      </div>
+    </div>
+  </div>
 
-<div class="toast" id="toast"></div>
+  <script>
+    // --- State Management ---
+    let tasks = [];
+    let historyLog = [];
 
-<script>
-(function(){
-  "use strict";
+    const loadData = () => {
+      const storedTasks = localStorage.getItem('tasktracker-tasks');
+      const storedHistory = localStorage.getItem('tasktracker-history');
 
-  const FINANCE_KEY = 'dashboard-finance';
-  const HABITS_KEY = 'dashboard-habits';
-  const TODOS_KEY = 'dashboard-todos';
+      if (storedTasks) {
+        tasks = JSON.parse(storedTasks);
+        pruneExpiredCompletedTasks();
+      } else {
+        tasks = [
+          { id: '1', title: 'Complete comprehensive database cleanup', priority: '3', recurrence: 'none', date: '2026-06-25', category: 'cat-money', column: 'this-week' },
+          { id: '2', title: 'Review home automation configs', priority: '2', recurrence: 'weekly', date: '2026-06-27', category: 'cat-home', column: 'future' },
+          { id: '3', title: 'Cardio endurance and stretch workout', priority: '3', recurrence: 'daily', date: '2026-06-20', category: 'cat-health', column: 'today' }
+        ];
+        saveTasks();
+      }
 
-  let finance = { budget: 0, expenses: [] };
-  let habits = { list: [], completions: {} };
-  let todos = [];
+      if (storedHistory) {
+        historyLog = JSON.parse(storedHistory);
+        // Execute automatic clean-up loop for entries older than 2 years
+        pruneExpiredHistoryLog();
+      }
+    };
 
-  const CATEGORY_COLOR = '#D2784F';
+    const saveTasks = () => localStorage.setItem('tasktracker-tasks', JSON.stringify(tasks));
+    const saveHistory = () => localStorage.setItem('tasktracker-history', JSON.stringify(historyLog));
 
-  function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+    // --- Active Kanban Board Retention Limit (7 Days) ---
+    const pruneExpiredCompletedTasks = () => {
+      const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+      const now = Date.now();
+      let dataChanged = false;
 
-  function fmtDate(d){
-    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-  }
-  function todayStr(){ return fmtDate(new Date()); }
-  function dateOffset(daysAgo){
-    const d = new Date();
-    d.setDate(d.getDate() - daysAgo);
-    return fmtDate(d);
-  }
-  function money(n){
-    const v = Number(n) || 0;
-    return (v < 0 ? '-$' : '$') + Math.abs(v).toLocaleString(undefined, {maximumFractionDigits:2, minimumFractionDigits: v % 1 === 0 ? 0 : 2});
-  }
-
-  function showToast(msg){
-    const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.classList.add('show');
-    clearTimeout(t._timer);
-    t._timer = setTimeout(()=> t.classList.remove('show'), 3000);
-  }
-
-  async function loadKey(key, fallback){
-    try{
-      const res = await window.storage.get(key, false);
-      if(res && typeof res.value === 'string') return JSON.parse(res.value);
-      return fallback;
-    }catch(e){
-      return fallback;
-    }
-  }
-  async function saveKey(key, value){
-    try{
-      const res = await window.storage.set(key, JSON.stringify(value), false);
-      if(!res) showToast("Couldn't save — try again");
-    }catch(e){
-      showToast("Couldn't save — try again");
-    }
-  }
-
-  // ---------- Header ----------
-  function renderHeader(){
-    const now = new Date();
-    document.getElementById('dateLine').textContent = now.toLocaleDateString(undefined, { weekday:'short', month:'short', day:'numeric' }).toUpperCase();
-    const hour = now.getHours();
-    const greet = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
-    document.getElementById('greeting').textContent = greet + '.';
-
-    const spent = monthSpent();
-    const remaining = (finance.budget||0) - spent;
-    const todayCompletedCount = habits.list.filter(h => (habits.completions[h.id]||[]).includes(todayStr())).length;
-
-    const chips = document.getElementById('summaryChips');
-    chips.innerHTML = '';
-    const c1 = document.createElement('span');
-    c1.innerHTML = '<strong>' + money(remaining) + '</strong> left to spend';
-    const c2 = document.createElement('span');
-    c2.innerHTML = '<strong>' + todayCompletedCount + ' / ' + habits.list.length + '</strong> habits done today';
-    const c3 = document.createElement('span');
-    const openTodos = todos.filter(t=>!t.done).length;
-    c3.innerHTML = '<strong>' + openTodos + '</strong> things on today\'s list';
-    chips.appendChild(c1); chips.appendChild(c2); chips.appendChild(c3);
-  }
-
-  // ---------- Finance ----------
-  function monthSpent(){
-    return finance.expenses.reduce((sum,e)=> sum + (Number(e.amount)||0), 0);
-  }
-
-  function renderFinance(){
-    document.getElementById('budgetInput').value = finance.budget || '';
-
-    const spent = monthSpent();
-    const budget = finance.budget || 0;
-    const remaining = budget - spent;
-    const remEl = document.getElementById('remainingAmt');
-    remEl.innerHTML = money(remaining) + ' <small>left' + (budget ? ' of ' + money(budget) : '') + '</small>';
-
-    const pct = budget > 0 ? Math.min(100, (spent/budget)*100) : 0;
-    const bar = document.getElementById('budgetBar');
-    bar.style.width = pct + '%';
-    bar.style.background = spent > budget && budget > 0 ? 'var(--clay)' : (pct > 80 ? 'var(--gold)' : 'var(--sage)');
-
-    const cap = document.getElementById('budgetCaption');
-    if(!budget){
-      cap.textContent = 'set a monthly budget above to track remaining spend';
-    } else if(spent > budget){
-      cap.textContent = 'over budget by ' + money(spent - budget);
-    } else {
-      cap.textContent = money(spent) + ' spent so far';
-    }
-
-    const list = document.getElementById('expenseList');
-    list.innerHTML = '';
-    if(finance.expenses.length === 0){
-      const div = document.createElement('div');
-      div.className = 'empty-note';
-      div.textContent = 'No expenses logged yet this month.';
-      list.appendChild(div);
-    } else {
-      finance.expenses.slice().reverse().slice(0,8).forEach(e=>{
-        const li = document.createElement('li');
-        const meta = document.createElement('div');
-        meta.className = 'exp-meta';
-        const cat = document.createElement('span');
-        cat.className = 'exp-cat';
-        cat.textContent = e.category;
-        meta.appendChild(cat);
-        if(e.note){
-          const note = document.createElement('span');
-          note.className = 'exp-note';
-          note.textContent = e.note;
-          meta.appendChild(note);
+      tasks = tasks.filter(task => {
+        if (task.column === 'completed' && task.completedTimestamp) {
+          const timeElapsed = now - task.completedTimestamp;
+          if (timeElapsed > SEVEN_DAYS_MS) {
+            dataChanged = true;
+            return false; 
+          }
         }
-        const amt = document.createElement('span');
-        amt.className = 'exp-amt';
-        amt.textContent = money(e.amount);
-
-        const del = document.createElement('button');
-        del.className = 'del-x';
-        del.textContent = '×';
-        del.onclick = () => {
-          finance.expenses = finance.expenses.filter(x=>x.id !== e.id);
-          saveKey(FINANCE_KEY, finance);
-          renderFinance(); renderHeader();
-        };
-
-        li.appendChild(meta);
-        li.appendChild(amt);
-        li.appendChild(del);
-        list.appendChild(li);
+        return true;
       });
-    }
 
-    // category breakdown
-    const totals = {};
-    finance.expenses.forEach(e=>{ totals[e.category] = (totals[e.category]||0) + (Number(e.amount)||0); });
-    const maxVal = Math.max(1, ...Object.values(totals));
-    const cb = document.getElementById('catBreakdown');
-    cb.innerHTML = '';
-    Object.entries(totals).sort((a,b)=>b[1]-a[1]).forEach(([cat,val])=>{
-      const row = document.createElement('div');
-      row.className = 'cat-bar-row';
-      const label = document.createElement('span');
-      label.textContent = cat;
-      const track = document.createElement('div');
-      track.className = 'cat-bar-track';
-      const fill = document.createElement('div');
-      fill.className = 'cat-bar-fill';
-      fill.style.width = ((val/maxVal)*100) + '%';
-      track.appendChild(fill);
-      const amtSpan = document.createElement('span');
-      amtSpan.style.textAlign = 'right';
-      amtSpan.textContent = money(val);
-      row.appendChild(label); row.appendChild(track); row.appendChild(amtSpan);
-      cb.appendChild(row);
-    });
-  }
+      if (dataChanged) saveTasks();
+    };
 
-  document.getElementById('budgetInput').addEventListener('change', (e)=>{
-    finance.budget = Math.max(0, Number(e.target.value) || 0);
-    saveKey(FINANCE_KEY, finance);
-    renderFinance(); renderHeader();
-  });
+    // --- History Log Retention Limit (2 Years Auto-Pruning Engine) ---
+    const pruneExpiredHistoryLog = () => {
+      const TWO_YEARS_MS = 2 * 365 * 24 * 60 * 60 * 1000;
+      const now = Date.now();
+      let dataChanged = false;
 
-  document.getElementById('addExpBtn').addEventListener('click', ()=>{
-    const amtInput = document.getElementById('expAmt');
-    const catInput = document.getElementById('expCat');
-    const noteInput = document.getElementById('expNote');
-    const amount = Number(amtInput.value);
-    if(!amount || amount <= 0){ amtInput.focus(); return; }
-    finance.expenses.push({ id: uid(), amount, category: catInput.value, note: noteInput.value.trim(), date: todayStr() });
-    saveKey(FINANCE_KEY, finance);
-    amtInput.value = ''; noteInput.value = '';
-    renderFinance(); renderHeader();
-  });
+      historyLog = historyLog.filter(entry => {
+        // Evaluate numerical timestamp key attached to the log item definition
+        if (entry.logTimestamp) {
+          const timeElapsed = now - entry.logTimestamp;
+          if (timeElapsed > TWO_YEARS_MS) {
+            dataChanged = true;
+            return false; // Permanently drops entry out of history loop
+          }
+        }
+        return true;
+      });
 
-  document.getElementById('resetMonthBtn').addEventListener('click', ()=>{
-    if(confirm('Clear this month\'s logged expenses? Your budget stays the same.')){
-      finance.expenses = [];
-      saveKey(FINANCE_KEY, finance);
-      renderFinance(); renderHeader();
-    }
-  });
+      if (dataChanged) saveHistory();
+    };
 
-  // ---------- Habits ----------
-  function streakFor(habitId){
-    const dates = new Set(habits.completions[habitId] || []);
-    let count = 0;
-    let cursor = new Date();
-    if(!dates.has(todayStr())){ cursor.setDate(cursor.getDate()-1); }
-    while(dates.has(fmtDate(cursor))){
-      count++;
-      cursor.setDate(cursor.getDate()-1);
-    }
-    return count;
-  }
+    // --- DOM Reference Mapping ---
+    const form = document.getElementById('taskForm');
+    const cardLists = document.querySelectorAll('.card-list');
+    const columns = document.querySelectorAll('.column');
+    
+    const historyModal = document.getElementById('historyModal');
+    const openHistoryBtn = document.getElementById('openHistoryBtn');
+    const closeHistoryBtn = document.getElementById('closeHistoryBtn');
+    const historyContainer = document.getElementById('historyContainer');
 
-  function renderHabits(){
-    const container = document.getElementById('habitsContainer');
-    container.innerHTML = '';
-    if(habits.list.length === 0){
-      const div = document.createElement('div');
-      div.className = 'empty-note';
-      div.textContent = 'No habits yet — add one above to start a streak.';
-      container.appendChild(div);
-      return;
-    }
-    const last14 = [];
-    for(let i=13;i>=0;i--) last14.push(dateOffset(i));
-
-    habits.list.forEach(h=>{
-      const dates = new Set(habits.completions[h.id] || []);
-      const row = document.createElement('div');
-      row.className = 'habit-row';
-
-      const top = document.createElement('div');
-      top.className = 'habit-top';
-      const name = document.createElement('span');
-      name.className = 'habit-name';
-      name.textContent = h.name;
-      const right = document.createElement('div');
-      right.style.display = 'flex'; right.style.alignItems='center'; right.style.gap='10px';
-      const streak = document.createElement('span');
-      streak.className = 'habit-streak';
-      const s = streakFor(h.id);
-      streak.textContent = s + (s===1 ? ' day' : ' days');
-      const del = document.createElement('button');
-      del.className = 'habit-del';
-      del.textContent = '×';
-      del.onclick = () => {
-        habits.list = habits.list.filter(x=>x.id!==h.id);
-        delete habits.completions[h.id];
-        saveKey(HABITS_KEY, habits);
-        renderHabits(); renderHeader();
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const titleInput = document.getElementById('taskTitle');
+      const prioritySelect = document.getElementById('taskPriority');
+      const recurrenceSelect = document.getElementById('taskRecurrence');
+      const dateInput = document.getElementById('taskDate');
+      const catSelect = document.getElementById('taskCategory');
+      
+      const newTask = {
+        id: Date.now().toString(),
+        title: titleInput.value.trim(),
+        priority: prioritySelect.value,
+        recurrence: recurrenceSelect.value,
+        date: dateInput.value,
+        category: catSelect.value,
+        column: 'future'
       };
-      right.appendChild(streak); right.appendChild(del);
-      top.appendChild(name); top.appendChild(right);
 
-      const chain = document.createElement('div');
-      chain.className = 'chain';
-      last14.forEach((dStr, idx)=>{
-        const bead = document.createElement('span');
-        bead.className = 'bead' + (dates.has(dStr) ? ' done' : '');
-        bead.title = dStr;
-        bead.onclick = () => {
-          const set = new Set(habits.completions[h.id] || []);
-          if(set.has(dStr)) set.delete(dStr); else set.add(dStr);
-          habits.completions[h.id] = Array.from(set);
-          saveKey(HABITS_KEY, habits);
-          renderHabits(); renderHeader();
-        };
-        chain.appendChild(bead);
-        if(idx < last14.length - 1){
-          const thread = document.createElement('span');
-          const nextDone = dates.has(last14[idx+1]);
-          thread.className = 'thread' + (dates.has(dStr) && nextDone ? ' solid' : '');
-          chain.appendChild(thread);
-        }
-      });
-
-      row.appendChild(top);
-      row.appendChild(chain);
-      container.appendChild(row);
+      tasks.push(newTask);
+      saveTasks();
+      renderTasks();
+      
+      titleInput.value = '';
+      dateInput.value = '';
+      prioritySelect.value = '2';
+      recurrenceSelect.value = 'none';
+      titleInput.focus();
     });
-  }
 
-  document.getElementById('addHabitBtn').addEventListener('click', ()=>{
-    const input = document.getElementById('habitName');
-    const val = input.value.trim();
-    if(!val) { input.focus(); return; }
-    habits.list.push({ id: uid(), name: val });
-    saveKey(HABITS_KEY, habits);
-    input.value = '';
-    renderHabits(); renderHeader();
-  });
-  document.getElementById('habitName').addEventListener('keydown', (e)=>{
-    if(e.key === 'Enter') document.getElementById('addHabitBtn').click();
-  });
+    // --- Drag and Drop Management ---
+    let draggedCardId = null;
 
-  // ---------- Todos ----------
-  function renderTodos(){
-    const list = document.getElementById('todoList');
-    list.innerHTML = '';
-    if(todos.length === 0){
-      const div = document.createElement('div');
-      div.className = 'empty-note';
-      div.textContent = 'Nothing on your list yet.';
-      list.appendChild(div);
-      return;
-    }
-    todos.forEach(t=>{
+    const handleDragStart = (e) => {
+      draggedCardId = e.target.getAttribute('data-id');
+      e.target.classList.add('dragging');
+    };
+
+    const handleDragEnd = (e) => {
+      e.target.classList.remove('dragging');
+      columns.forEach(col => col.classList.remove('drag-over'));
+      draggedCardId = null;
+    };
+
+    const handleDragOver = (e) => e.preventDefault();
+
+    const handleDragEnter = (e) => {
+      e.preventDefault();
+      const columnEl = e.target.closest('.column');
+      if (columnEl) columnEl.classList.add('drag-over');
+    };
+
+    const handleDragLeave = (e) => {
+      const columnEl = e.target.closest('.column');
+      if (columnEl && !columnEl.contains(e.relatedTarget)) {
+        columnEl.classList.remove('drag-over');
+      }
+    };
+
+    // --- Date Multipliers Engine ---
+    const calculateNextDate = (currentDateStr, recurrence) => {
+      let baseDate = currentDateStr ? new Date(currentDateStr) : new Date();
+      if (isNaN(baseDate.getTime())) baseDate = new Date();
+
+      switch (recurrence) {
+        case 'daily': baseDate.setDate(baseDate.getDate() + 1); break;
+        case 'weekly': baseDate.setDate(baseDate.getDate() + 7); break;
+        case 'monthly': baseDate.setMonth(baseDate.getMonth() + 1); break;
+        case 'yearly': baseDate.setFullYear(baseDate.getFullYear() + 1); break;
+        default: return currentDateStr;
+      }
+      return baseDate.toISOString().split('T')[0];
+    };
+
+    // --- Permanent Completion Audit Logger ---
+    const logTaskCompletion = (task) => {
+      const now = new Date();
+      const timestampStr = now.toLocaleDateString() + ' ' + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      
+      const logEntry = {
+        id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+        title: task.title,
+        priority: task.priority,
+        category: task.category,
+        completedAt: timestampStr,
+        logTimestamp: Date.now(), // Attached parameters drive the 2-year purging metric safely
+        originalTargetDate: task.date || 'No target date'
+      };
+
+      historyLog.unshift(logEntry);
+      saveHistory();
+    };
+
+    const handleDrop = (e) => {
+      e.preventDefault();
+      const targetColumnEl = e.target.closest('.column');
+      if (!targetColumnEl || !draggedCardId) return;
+
+      const targetColumnId = targetColumnEl.id;
+      const currentTask = tasks.find(t => t.id === draggedCardId);
+
+      if (currentTask) {
+        const structuralOrigin = currentTask.column;
+        
+        if (targetColumnId === 'completed' && structuralOrigin !== 'completed') {
+          logTaskCompletion(currentTask);
+          currentTask.completedTimestamp = Date.now();
+
+          if (currentTask.recurrence !== 'none') {
+            const nextTargetDate = calculateNextDate(currentTask.date, currentTask.recurrence);
+            let nextColumn = 'future';
+            const todayStr = new Date().toISOString().split('T')[0];
+            if (nextTargetDate === todayStr) nextColumn = 'today';
+
+            const recurringCopy = {
+              ...currentTask,
+              id: (Date.now() + 1).toString(),
+              date: nextTargetDate,
+              column: nextColumn
+            };
+            delete recurringCopy.completedTimestamp; 
+            
+            currentTask.recurrence = 'none'; 
+            tasks.push(recurringCopy);
+          }
+        } else if (targetColumnId !== 'completed') {
+          delete currentTask.completedTimestamp;
+        }
+
+        currentTask.column = targetColumnId;
+        saveTasks();
+        renderTasks();
+      }
+    };
+
+    // --- UI Presentation Layer Rendering ---
+    const getPriorityLabel = (num) => {
+      if (num === '3') return 'High';
+      if (num === '2') return 'Medium';
+      return 'Low';
+    };
+
+    const formatDateDisplay = (dateStr) => {
+      if (!dateStr) return '';
+      const parts = dateStr.split('-');
+      if (parts.length !== 3) return dateStr;
+      return `${parts[1]}/${parts[2]}`;
+    };
+
+    const createCardElement = (task) => {
       const li = document.createElement('li');
-      const cb = document.createElement('input');
-      cb.type = 'checkbox';
-      cb.checked = t.done;
-      cb.onchange = () => {
-        t.done = cb.checked;
-        saveKey(TODOS_KEY, todos);
-        renderTodos(); renderHeader();
-      };
-      const txt = document.createElement('span');
-      txt.className = 'todo-text' + (t.done ? ' done' : '');
-      txt.textContent = t.text;
-      const del = document.createElement('button');
-      del.className = 'del-x';
-      del.textContent = '×';
-      del.onclick = () => {
-        todos = todos.filter(x=>x.id!==t.id);
-        saveKey(TODOS_KEY, todos);
-        renderTodos(); renderHeader();
-      };
-      li.appendChild(cb); li.appendChild(txt); li.appendChild(del);
-      list.appendChild(li);
+      li.className = `card ${task.category}`;
+      li.setAttribute('draggable', 'true');
+      li.setAttribute('data-id', task.id);
+      
+      li.addEventListener('dragstart', handleDragStart);
+      li.addEventListener('dragend', handleDragEnd);
+
+      const headerRow = document.createElement('div');
+      headerRow.className = 'card-header-row';
+
+      const textSpan = document.createElement('span');
+      textSpan.className = 'card-text';
+      textSpan.textContent = task.title;
+      headerRow.appendChild(textSpan);
+
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'card-delete';
+      deleteBtn.innerHTML = '&#10005;';
+      deleteBtn.addEventListener('click', () => deleteTask(task.id));
+
+      const metaRow = document.createElement('div');
+      metaRow.className = 'card-meta';
+
+      const priorityBadge = document.createElement('span');
+      priorityBadge.className = `badge priority-${task.priority}`;
+      priorityBadge.textContent = getPriorityLabel(task.priority);
+      metaRow.appendChild(priorityBadge);
+
+      if (task.recurrence && task.recurrence !== 'none') {
+        const recBadge = document.createElement('span');
+        recBadge.className = 'badge recurring-badge';
+        recBadge.textContent = `🔄 ${task.recurrence}`;
+        metaRow.appendChild(recBadge);
+      }
+
+      if (task.date) {
+        const dateBadge = document.createElement('span');
+        dateBadge.className = 'card-date';
+        dateBadge.innerHTML = `📅 ${formatDateDisplay(task.date)}`;
+        metaRow.appendChild(dateBadge);
+      }
+
+      li.appendChild(headerRow);
+      li.appendChild(deleteBtn);
+      li.appendChild(metaRow);
+      
+      return li;
+    };
+
+    const deleteTask = (id) => {
+      tasks = tasks.filter(t => t.id !== id);
+      saveTasks();
+      renderTasks();
+    };
+
+    const updateColumnCounters = () => {
+      ['future', 'this-week', 'today', 'completed'].forEach(id => {
+        const count = tasks.filter(t => t.column === id).length;
+        document.getElementById(`count-${id}`).textContent = count;
+      });
+    };
+
+    const renderTasks = () => {
+      cardLists.forEach(list => list.innerHTML = '');
+
+      const sortedTasks = [...tasks].sort((a, b) => Number(b.priority) - Number(a.priority));
+      let distributionCount = { future: 0, 'this-week': 0, today: 0, completed: 0 };
+
+      sortedTasks.forEach(task => {
+        const targetList = document.querySelector(`[data-column="${task.column}"]`);
+        if (targetList) {
+          targetList.appendChild(createCardElement(task));
+          distributionCount[task.column]++;
+        }
+      });
+
+      Object.keys(distributionCount).forEach(colId => {
+        if (distributionCount[colId] === 0) {
+          const listEl = document.querySelector(`[data-column="${colId}"]`);
+          const emptyNote = document.createElement('div');
+          emptyNote.className = 'empty-note';
+          emptyNote.textContent = 'No remaining tasks.';
+          listEl.appendChild(emptyNote);
+        }
+      });
+
+      updateColumnCounters();
+    };
+
+    // --- Pop-Up Window / Modal Render Module ---
+    const renderHistoryLog = () => {
+      historyContainer.innerHTML = '';
+      
+      if (historyLog.length === 0) {
+        historyContainer.innerHTML = `<div class="history-empty">No completed tasks on file yet.</div>`;
+        return;
+      }
+
+      const ul = document.createElement('ul');
+      ul.className = 'history-list';
+
+      historyLog.forEach(item => {
+        const li = document.createElement('li');
+        li.className = 'history-item';
+        li.innerHTML = `
+          <div class="history-item-header">
+            <span class="history-item-title">${item.title}</span>
+            <span class="history-timestamp">✓ ${item.completedAt}</span>
+          </div>
+          <div class="history-item-details">
+            <span class="badge priority-${item.priority}">${getPriorityLabel(item.priority)}</span>
+            <span>Target: ${item.originalTargetDate}</span>
+          </div>
+        `;
+        ul.appendChild(li);
+      });
+
+      historyContainer.appendChild(ul);
+    };
+
+    // --- Modal Interface Action Bindings ---
+    openHistoryBtn.addEventListener('click', () => {
+      renderHistoryLog();
+      historyModal.classList.add('active');
     });
-  }
 
-  document.getElementById('addTodoBtn').addEventListener('click', ()=>{
-    const input = document.getElementById('todoText');
-    const val = input.value.trim();
-    if(!val){ input.focus(); return; }
-    todos.push({ id: uid(), text: val, done: false });
-    saveKey(TODOS_KEY, todos);
-    input.value = '';
-    renderTodos(); renderHeader();
-  });
-  document.getElementById('todoText').addEventListener('keydown', (e)=>{
-    if(e.key === 'Enter') document.getElementById('addTodoBtn').click();
-  });
+    closeHistoryBtn.addEventListener('click', () => historyModal.classList.remove('active'));
+    
+    historyModal.addEventListener('click', (e) => {
+      if (e.target === historyModal) historyModal.classList.remove('active');
+    });
 
-  // ---------- Clear all ----------
-  document.getElementById('clearAllBtn').addEventListener('click', async ()=>{
-    if(!confirm('Clear ALL dashboard data — budget, expenses, habits, and your list? This cannot be undone.')) return;
-    try{
-      await window.storage.delete(FINANCE_KEY, false);
-      await window.storage.delete(HABITS_KEY, false);
-      await window.storage.delete(TODOS_KEY, false);
-    }catch(e){ /* ignore if already absent */ }
-    finance = { budget:0, expenses:[] };
-    habits = { list:[], completions:{} };
-    todos = [];
-    renderFinance(); renderHabits(); renderTodos(); renderHeader();
-    showToast('All data cleared');
-  });
+    // --- Bootstrap Hookup ---
+    columns.forEach(col => {
+      col.addEventListener('dragover', handleDragOver);
+      col.addEventListener('dragenter', handleDragEnter);
+      col.addEventListener('dragleave', handleDragLeave);
+      col.addEventListener('drop', handleDrop);
+    });
 
-  // ---------- Init ----------
-  async function init(){
-    const [f,h,t] = await Promise.all([
-      loadKey(FINANCE_KEY, { budget:0, expenses:[] }),
-      loadKey(HABITS_KEY, { list:[], completions:{} }),
-      loadKey(TODOS_KEY, [])
-    ]);
-    finance = f; habits = h; todos = t;
-
-    renderHeader();
-    renderFinance();
-    renderHabits();
-    renderTodos();
-
-    document.getElementById('loading').style.display = 'none';
-    const app = document.getElementById('app');
-    app.classList.add('ready');
-  }
-
-  init();
-})();
-</script>
+    loadData();
+    renderTasks();
+  </script>
 </body>
 </html>
