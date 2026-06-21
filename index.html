@@ -279,12 +279,16 @@
       border-left: 4px solid transparent;
       cursor: grab;
       position: relative;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s;
       user-select: none;
     }
 
     .card:active {
       cursor: grabbing;
+    }
+    
+    .card:hover {
+      background-color: #273e46;
     }
 
     .card.dragging {
@@ -353,6 +357,12 @@
       background-color: rgba(110, 155, 123, 0.15);
       color: #8EBA99;
       border: 1px solid rgba(110, 155, 123, 0.25);
+    }
+
+    .badge.synced-badge {
+      background-color: rgba(74, 144, 226, 0.15);
+      color: #7FB3EB;
+      border: 1px solid rgba(74, 144, 226, 0.25);
     }
 
     .card-date {
@@ -523,15 +533,15 @@
       background-color: var(--gold-hover);
     }
 
-    /* History Audit List */
-    .history-list {
+    /* History Audit & Version List Styles */
+    .history-list, .version-list {
       list-style: none;
       display: flex;
       flex-direction: column;
       gap: 12px;
     }
 
-    .history-item {
+    .history-item, .version-item {
       background-color: var(--card-bg);
       border: 1px solid var(--border-color);
       padding: 14px;
@@ -541,32 +551,61 @@
       gap: 6px;
     }
 
-    .history-item-header {
+    .history-item-header, .version-item-header {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
       gap: 10px;
     }
 
-    .history-item-title {
+    .history-item-title, .version-item-title {
       font-size: 0.95rem;
       font-weight: 600;
     }
 
-    .history-timestamp {
+    .history-timestamp, .version-timestamp {
       font-size: 0.75rem;
       color: #8EBA99;
       white-space: nowrap;
     }
 
-    .history-item-details {
+    .history-item-details, .version-item-details {
       display: flex;
-      gap: 8px;
+      justify-content: space-between;
+      align-items: center;
       font-size: 0.75rem;
       color: var(--text-muted);
     }
 
-    .history-empty {
+    .version-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .version-btn {
+      background: rgba(237, 230, 214, 0.05);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 4px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.75rem;
+      transition: all 0.2s;
+    }
+
+    .version-btn.restore:hover {
+      background-color: rgba(142, 186, 153, 0.2);
+      border-color: #8EBA99;
+      color: #8EBA99;
+    }
+
+    .version-btn.delete:hover {
+      background-color: rgba(210, 120, 79, 0.2);
+      border-color: var(--alert-color);
+      color: var(--alert-color);
+    }
+
+    .history-empty, .version-empty {
       text-align: center;
       color: var(--text-muted);
       font-style: italic;
@@ -637,6 +676,7 @@
       <button class="action-btn primary desktop-only-btn" id="openTaskFormBtn">+ Add New Task</button>
       <button class="action-btn calendar-sync" id="syncCalendarBtn">📅 Connect Google Calendar</button>
       <button class="action-btn" id="openHistoryBtn">⏱ View History Log</button>
+      <button class="action-btn" id="openVersionsBtn">📦 Manage Versions</button>
     </div>
   </header>
 
@@ -765,30 +805,49 @@
     </div>
   </div>
 
+  <!-- Version Control Feature Modal Architecture -->
+  <div class="modal-overlay" id="versionModal">
+    <div class="modal-window">
+      <div class="modal-header">
+        <h2 class="modal-title">Board Version Control</h2>
+        <button class="close-modal-btn" id="closeVersionModalBtn">&#10005;</button>
+      </div>
+      <div class="modal-content">
+        <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+          <input type="text" id="versionLabel" placeholder="Optional version label (e.g., Pre-cleanup)..." autocomplete="off" style="flex-grow: 1; min-height: 40px;">
+          <button class="action-btn primary" id="saveVersionBtn" style="border-radius: 8px; padding: 0 16px; font-weight: 600;">Save Snapshot</button>
+        </div>
+        <div id="versionsContainer"></div>
+      </div>
+    </div>
+  </div>
+
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 
   <script>
     // --- State Management ---
     let tasks = [];
     let historyLog = [];
+    let boardVersions = [];
     let googleAccessToken = null;
 
     // --- Google Calendar Configuration Parameters ---
     const GOOGLE_CLIENT_ID = '863937576978-ie5a21pc1dqako4olv2p9k39aua6p9ho.apps.googleusercontent.com';
-    const CALENDAR_SCOPES = 'https://www.googleapis.com/auth/calendar.events.lite';
+    const CALENDAR_SCOPES = 'https://www.googleapis.com/auth/calendar.events';
 
     const loadData = () => {
       const storedTasks = localStorage.getItem('tasktracker-tasks');
       const storedHistory = localStorage.getItem('tasktracker-history');
+      const storedVersions = localStorage.getItem('tasktracker-versions');
 
       if (storedTasks) {
         tasks = JSON.parse(storedTasks);
         pruneExpiredCompletedTasks();
       } else {
         tasks = [
-          { id: '1', title: 'Complete comprehensive database cleanup', priority: '3', recurrence: 'none', date: '2026-06-25', category: 'cat-money', column: 'this-week' },
-          { id: '2', title: 'Review home automation configs', priority: '2', recurrence: 'weekly', date: '2026-06-27', category: 'cat-home', column: 'future' },
-          { id: '3', title: 'Cardio endurance and stretch workout', priority: '3', recurrence: 'daily', date: '2026-06-20', category: 'cat-health', column: 'today' }
+          { id: '1', title: 'Complete comprehensive database cleanup', priority: '3', recurrence: 'none', date: '2026-06-25', category: 'cat-money', column: 'this-week', googleSynced: false },
+          { id: '2', title: 'Review home automation configs', priority: '2', recurrence: 'weekly', date: '2026-06-27', category: 'cat-home', column: 'future', googleSynced: false },
+          { id: '3', title: 'Cardio endurance and stretch workout', priority: '3', recurrence: 'daily', date: '2026-06-20', category: 'cat-health', column: 'today', googleSynced: false }
         ];
         saveTasks();
       }
@@ -797,12 +856,16 @@
         historyLog = JSON.parse(storedHistory);
         pruneExpiredHistoryLog();
       }
+
+      if (storedVersions) {
+        boardVersions = JSON.parse(storedVersions);
+      }
     };
 
     const saveTasks = () => localStorage.setItem('tasktracker-tasks', JSON.stringify(tasks));
     const saveHistory = () => localStorage.setItem('tasktracker-history', JSON.stringify(historyLog));
+    const saveVersions = () => localStorage.setItem('tasktracker-versions', JSON.stringify(boardVersions));
 
-    // --- Active Kanban Board Retention Limit (7 Days) ---
     const pruneExpiredCompletedTasks = () => {
       const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
       const now = Date.now();
@@ -822,7 +885,6 @@
       if (dataChanged) saveTasks();
     };
 
-    // --- History Log Retention Limit (2 Years Auto-Pruning) ---
     const pruneExpiredHistoryLog = () => {
       const TWO_YEARS_MS = 2 * 365 * 24 * 60 * 60 * 1000;
       const now = Date.now();
@@ -863,19 +925,23 @@
     };
 
     syncBtn.addEventListener('click', () => {
-      if (!googleAccessToken && tokenClient) {
-        tokenClient.requestAccessToken({ prompt: 'consent' });
-      }
+      tokenClient.requestAccessToken({ prompt: 'consent' });
     });
 
     const pushTaskToGoogleCalendar = async (task) => {
-      if (!googleAccessToken || !task.date) return;
+      if (!googleAccessToken) {
+        // Automatically request token if it dropped out or was cleared from tab reload
+        alert("Google token missing or expired. Re-authenticating sync request...");
+        tokenClient.requestAccessToken();
+        return false;
+      }
+      if (!task.date) return false;
 
       const eventPayload = {
         summary: task.title,
         description: `Priority: ${getPriorityLabel(task.priority)} | Tracker Category: ${task.category}`,
         start: { date: task.date },
-        end: { date: task.date } // All-day entry standard mapping
+        end: { date: task.date }
       };
 
       try {
@@ -889,33 +955,17 @@
         });
         
         if (response.ok) {
-          const responseData = await response.json();
-          task.googleEventId = responseData.id; // Save calendar coordinate mapping reference string
+          task.googleSynced = true;
           saveTasks();
+          renderTasks();
+          return true;
         } else {
           console.error('Failed to sync to Google Calendar:', await response.text());
+          return false;
         }
       } catch (err) {
         console.error('Network error during Google Calendar push:', err);
-      }
-    };
-
-    const deleteTaskFromGoogleCalendar = async (task) => {
-      if (!googleAccessToken || !task.googleEventId) return;
-
-      try {
-        const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${task.googleEventId}`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${googleAccessToken}`
-          }
-        });
-        
-        if (!response.ok) {
-          console.error('Failed to delete event from Google Calendar:', await response.text());
-        }
-      } catch (err) {
-        console.error('Network error during Google Calendar deletion:', err);
+        return false;
       }
     };
 
@@ -933,6 +983,13 @@
     const openHistoryBtn = document.getElementById('openHistoryBtn');
     const closeHistoryBtn = document.getElementById('closeHistoryBtn');
     const historyContainer = document.getElementById('historyContainer');
+
+    const versionModal = document.getElementById('versionModal');
+    const openVersionsBtn = document.getElementById('openVersionsBtn');
+    const closeVersionModalBtn = document.getElementById('closeVersionModalBtn');
+    const saveVersionBtn = document.getElementById('saveVersionBtn');
+    const versionLabelInput = document.getElementById('versionLabel');
+    const versionsContainer = document.getElementById('versionsContainer');
     
     const mobileNavButtons = document.querySelectorAll('.mobile-nav-btn');
 
@@ -951,7 +1008,13 @@
     });
     closeHistoryBtn.addEventListener('click', () => closeModal(historyModal));
 
-    [taskModal, historyModal].forEach(modal => {
+    openVersionsBtn.addEventListener('click', () => {
+      renderVersionsList();
+      openModal(versionModal);
+    });
+    closeVersionModalBtn.addEventListener('click', () => closeModal(versionModal));
+
+    [taskModal, historyModal, versionModal].forEach(modal => {
       modal.addEventListener('click', (e) => {
         if (e.target === modal) closeModal(modal);
       });
@@ -975,7 +1038,7 @@
     });
 
     // --- Task Record Storage Creation Lifecycle ---
-    form.addEventListener('submit', (e) => {
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const titleInput = document.getElementById('taskTitle');
       const prioritySelect = document.getElementById('taskPriority');
@@ -993,7 +1056,8 @@
         recurrence: recurrenceSelect.value,
         date: dateInput.value,
         category: catSelect.value,
-        column: targetColumn
+        column: targetColumn,
+        googleSynced: false
       };
 
       if (targetColumn === 'completed') {
@@ -1005,9 +1069,8 @@
       saveTasks();
       renderTasks();
       
-      // Dispatch async payload transmission if connected
-      if (newTask.date) {
-        pushTaskToGoogleCalendar(newTask);
+      if (newTask.date && googleAccessToken) {
+        await pushTaskToGoogleCalendar(newTask);
       }
       
       closeModal(taskModal);
@@ -1079,7 +1142,7 @@
       saveHistory();
     };
 
-    const executeMoveAction = (taskId, targetColumnId) => {
+    const executeMoveAction = async (taskId, targetColumnId) => {
       const currentTask = tasks.find(t => t.id === taskId);
       if (!currentTask || currentTask.column === targetColumnId) return;
 
@@ -1099,14 +1162,14 @@
             ...currentTask,
             id: (Date.now() + 1).toString(),
             date: nextTargetDate,
-            column: nextColumn
+            column: nextColumn,
+            googleSynced: false
           };
           delete recurringCopy.completedTimestamp; 
-          delete recurringCopy.googleEventId; // Reset event tracking variable for replica
           
           currentTask.recurrence = 'none'; 
           tasks.push(recurringCopy);
-          if (recurringCopy.date) pushTaskToGoogleCalendar(recurringCopy);
+          if (recurringCopy.date && googleAccessToken) await pushTaskToGoogleCalendar(recurringCopy);
         }
       } else if (targetColumnId !== 'completed') {
         delete currentTask.completedTimestamp;
@@ -1143,9 +1206,33 @@
       li.className = `card ${task.category}`;
       li.setAttribute('draggable', 'true');
       li.setAttribute('data-id', task.id);
+      li.setAttribute('title', 'Click card to manually sync/re-sync to Google Calendar');
       
       li.addEventListener('dragstart', handleDragStart);
       li.addEventListener('dragend', handleDragEnd);
+      
+      // Force individual card click to trigger sync integration
+      li.addEventListener('click', async (e) => {
+        if (e.target.classList.contains('card-delete') || e.target.classList.contains('mobile-move-select')) return;
+        if (!task.date) {
+          alert("This task doesn't have a target date to map onto a calendar.");
+          return;
+        }
+        
+        if (!googleAccessToken) {
+          alert("Please connect your Google account first using the top header button.");
+          tokenClient.requestAccessToken();
+          return;
+        }
+
+        li.style.opacity = "0.5";
+        const success = await pushTaskToGoogleCalendar(task);
+        li.style.opacity = "1";
+        
+        if (success) {
+          alert(`"${task.title}" successfully pushed to Google Calendar!`);
+        }
+      });
 
       const headerRow = document.createElement('div');
       headerRow.className = 'card-header-row';
@@ -1176,6 +1263,13 @@
         recBadge.className = 'badge recurring-badge';
         recBadge.textContent = `🔄 ${task.recurrence}`;
         metaRow.appendChild(recBadge);
+      }
+
+      if (task.googleSynced) {
+        const syncBadge = document.createElement('span');
+        syncBadge.className = 'badge synced-badge';
+        syncBadge.textContent = '✓ GCal';
+        metaRow.appendChild(syncBadge);
       }
 
       if (task.date) {
@@ -1211,11 +1305,7 @@
       return li;
     };
 
-    const deleteTask = async (id) => {
-      const taskToDelete = tasks.find(t => t.id === id);
-      if (taskToDelete && taskToDelete.googleEventId) {
-        await deleteTaskFromGoogleCalendar(taskToDelete);
-      }
+    const deleteTask = (id) => {
       tasks = tasks.filter(t => t.id !== id);
       saveTasks();
       renderTasks();
@@ -1287,6 +1377,81 @@
       });
 
       historyContainer.appendChild(ul);
+    };
+
+    // --- Versioning UI & Business Logic Processing ---
+    saveVersionBtn.addEventListener('click', () => {
+      const label = versionLabelInput.value.trim() || 'Manual Snapshot';
+      const now = new Date();
+      const timestampStr = now.toLocaleDateString() + ' ' + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      const newVersion = {
+        id: Date.now().toString(),
+        label: label,
+        timestamp: timestampStr,
+        snapshot: JSON.parse(JSON.stringify(tasks))
+      };
+
+      boardVersions.unshift(newVersion);
+      saveVersions();
+      renderVersionsList();
+      versionLabelInput.value = '';
+    });
+
+    const restoreVersion = (id) => {
+      const targetVer = boardVersions.find(v => v.id === id);
+      if (!targetVer) return;
+
+      if (confirm(`Are you sure you want to restore "${targetVer.label}"? This overrides your active board tasks.`)) {
+        tasks = JSON.parse(JSON.stringify(targetVer.snapshot));
+        saveTasks();
+        renderTasks();
+        closeModal(versionModal);
+      }
+    };
+
+    const deleteVersion = (id) => {
+      if (confirm('Delete this saved snapshot permanently?')) {
+        boardVersions = boardVersions.filter(v => v.id !== id);
+        saveVersions();
+        renderVersionsList();
+      }
+    };
+
+    const renderVersionsList = () => {
+      versionsContainer.innerHTML = '';
+
+      if (boardVersions.length === 0) {
+        versionsContainer.innerHTML = `<div class="version-empty">No saved board snapshots found.</div>`;
+        return;
+      }
+
+      const ul = document.createElement('ul');
+      ul.className = 'version-list';
+
+      boardVersions.forEach(ver => {
+        const li = document.createElement('li');
+        li.className = 'version-item';
+        li.innerHTML = `
+          <div class="version-item-header">
+            <span class="version-item-title">${ver.label}</span>
+            <span class="version-timestamp">${ver.timestamp}</span>
+          </div>
+          <div class="version-item-details">
+            <span>Contains ${ver.snapshot.length} task${ver.snapshot.length === 1 ? '' : 's'}</span>
+            <div class="version-actions">
+              <button class="version-btn restore" data-id="${ver.id}">Restore</button>
+              <button class="version-btn delete" data-id="${ver.id}">Delete</button>
+            </div>
+          </div>
+        `;
+
+        li.querySelector('.restore').addEventListener('click', () => restoreVersion(ver.id));
+        li.querySelector('.delete').addEventListener('click', () => deleteVersion(ver.id));
+        ul.appendChild(li);
+      });
+
+      versionsContainer.appendChild(ul);
     };
 
     // --- Bootstrap Hookup ---
