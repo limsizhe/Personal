@@ -279,12 +279,16 @@
       border-left: 4px solid transparent;
       cursor: grab;
       position: relative;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s;
       user-select: none;
     }
 
     .card:active {
       cursor: grabbing;
+    }
+    
+    .card:hover {
+      background-color: #273e46;
     }
 
     .card.dragging {
@@ -353,6 +357,12 @@
       background-color: rgba(110, 155, 123, 0.15);
       color: #8EBA99;
       border: 1px solid rgba(110, 155, 123, 0.25);
+    }
+
+    .badge.synced-badge {
+      background-color: rgba(74, 144, 226, 0.15);
+      color: #7FB3EB;
+      border: 1px solid rgba(74, 144, 226, 0.25);
     }
 
     .card-date {
@@ -795,6 +805,7 @@
     </div>
   </div>
 
+  <!-- Version Control Feature Modal Architecture -->
   <div class="modal-overlay" id="versionModal">
     <div class="modal-window">
       <div class="modal-header">
@@ -822,7 +833,6 @@
 
     // --- Google Calendar Configuration Parameters ---
     const GOOGLE_CLIENT_ID = '863937576978-ie5a21pc1dqako4olv2p9k39aua6p9ho.apps.googleusercontent.com';
-    // FIXED: Swapped out invalid events.lite scope causing Error 400 with standard scope
     const CALENDAR_SCOPES = 'https://www.googleapis.com/auth/calendar.events';
 
     const loadData = () => {
@@ -835,9 +845,9 @@
         pruneExpiredCompletedTasks();
       } else {
         tasks = [
-          { id: '1', title: 'Complete comprehensive database cleanup', priority: '3', recurrence: 'none', date: '2026-06-25', category: 'cat-money', column: 'this-week' },
-          { id: '2', title: 'Review home automation configs', priority: '2', recurrence: 'weekly', date: '2026-06-27', category: 'cat-home', column: 'future' },
-          { id: '3', title: 'Cardio endurance and stretch workout', priority: '3', recurrence: 'daily', date: '2026-06-20', category: 'cat-health', column: 'today' }
+          { id: '1', title: 'Complete comprehensive database cleanup', priority: '3', recurrence: 'none', date: '2026-06-25', category: 'cat-money', column: 'this-week', googleSynced: false },
+          { id: '2', title: 'Review home automation configs', priority: '2', recurrence: 'weekly', date: '2026-06-27', category: 'cat-home', column: 'future', googleSynced: false },
+          { id: '3', title: 'Cardio endurance and stretch workout', priority: '3', recurrence: 'daily', date: '2026-06-20', category: 'cat-health', column: 'today', googleSynced: false }
         ];
         saveTasks();
       }
@@ -856,7 +866,6 @@
     const saveHistory = () => localStorage.setItem('tasktracker-history', JSON.stringify(historyLog));
     const saveVersions = () => localStorage.setItem('tasktracker-versions', JSON.stringify(boardVersions));
 
-    // --- Active Kanban Board Retention Limit (7 Days) ---
     const pruneExpiredCompletedTasks = () => {
       const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
       const now = Date.now();
@@ -876,7 +885,6 @@
       if (dataChanged) saveTasks();
     };
 
-    // --- History Log Retention Limit (2 Years Auto-Pruning) ---
     const pruneExpiredHistoryLog = () => {
       const TWO_YEARS_MS = 2 * 365 * 24 * 60 * 60 * 1000;
       const now = Date.now();
@@ -917,19 +925,23 @@
     };
 
     syncBtn.addEventListener('click', () => {
-      if (!googleAccessToken && tokenClient) {
-        tokenClient.requestAccessToken({ prompt: 'consent' });
-      }
+      tokenClient.requestAccessToken({ prompt: 'consent' });
     });
 
     const pushTaskToGoogleCalendar = async (task) => {
-      if (!googleAccessToken || !task.date) return;
+      if (!googleAccessToken) {
+        // Automatically request token if it dropped out or was cleared from tab reload
+        alert("Google token missing or expired. Re-authenticating sync request...");
+        tokenClient.requestAccessToken();
+        return false;
+      }
+      if (!task.date) return false;
 
       const eventPayload = {
         summary: task.title,
         description: `Priority: ${getPriorityLabel(task.priority)} | Tracker Category: ${task.category}`,
         start: { date: task.date },
-        end: { date: task.date } // All-day entry standard mapping
+        end: { date: task.date }
       };
 
       try {
@@ -942,11 +954,18 @@
           body: JSON.stringify(eventPayload)
         });
         
-        if (!response.ok) {
+        if (response.ok) {
+          task.googleSynced = true;
+          saveTasks();
+          renderTasks();
+          return true;
+        } else {
           console.error('Failed to sync to Google Calendar:', await response.text());
+          return false;
         }
       } catch (err) {
         console.error('Network error during Google Calendar push:', err);
+        return false;
       }
     };
 
@@ -1019,7 +1038,7 @@
     });
 
     // --- Task Record Storage Creation Lifecycle ---
-    form.addEventListener('submit', (e) => {
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const titleInput = document.getElementById('taskTitle');
       const prioritySelect = document.getElementById('taskPriority');
@@ -1037,7 +1056,8 @@
         recurrence: recurrenceSelect.value,
         date: dateInput.value,
         category: catSelect.value,
-        column: targetColumn
+        column: targetColumn,
+        googleSynced: false
       };
 
       if (targetColumn === 'completed') {
@@ -1049,9 +1069,8 @@
       saveTasks();
       renderTasks();
       
-      // Dispatch async payload transmission if connected
-      if (newTask.date) {
-        pushTaskToGoogleCalendar(newTask);
+      if (newTask.date && googleAccessToken) {
+        await pushTaskToGoogleCalendar(newTask);
       }
       
       closeModal(taskModal);
@@ -1123,7 +1142,7 @@
       saveHistory();
     };
 
-    const executeMoveAction = (taskId, targetColumnId) => {
+    const executeMoveAction = async (taskId, targetColumnId) => {
       const currentTask = tasks.find(t => t.id === taskId);
       if (!currentTask || currentTask.column === targetColumnId) return;
 
@@ -1143,13 +1162,14 @@
             ...currentTask,
             id: (Date.now() + 1).toString(),
             date: nextTargetDate,
-            column: nextColumn
+            column: nextColumn,
+            googleSynced: false
           };
           delete recurringCopy.completedTimestamp; 
           
           currentTask.recurrence = 'none'; 
           tasks.push(recurringCopy);
-          if (recurringCopy.date) pushTaskToGoogleCalendar(recurringCopy);
+          if (recurringCopy.date && googleAccessToken) await pushTaskToGoogleCalendar(recurringCopy);
         }
       } else if (targetColumnId !== 'completed') {
         delete currentTask.completedTimestamp;
@@ -1186,9 +1206,33 @@
       li.className = `card ${task.category}`;
       li.setAttribute('draggable', 'true');
       li.setAttribute('data-id', task.id);
+      li.setAttribute('title', 'Click card to manually sync/re-sync to Google Calendar');
       
       li.addEventListener('dragstart', handleDragStart);
       li.addEventListener('dragend', handleDragEnd);
+      
+      // Force individual card click to trigger sync integration
+      li.addEventListener('click', async (e) => {
+        if (e.target.classList.contains('card-delete') || e.target.classList.contains('mobile-move-select')) return;
+        if (!task.date) {
+          alert("This task doesn't have a target date to map onto a calendar.");
+          return;
+        }
+        
+        if (!googleAccessToken) {
+          alert("Please connect your Google account first using the top header button.");
+          tokenClient.requestAccessToken();
+          return;
+        }
+
+        li.style.opacity = "0.5";
+        const success = await pushTaskToGoogleCalendar(task);
+        li.style.opacity = "1";
+        
+        if (success) {
+          alert(`"${task.title}" successfully pushed to Google Calendar!`);
+        }
+      });
 
       const headerRow = document.createElement('div');
       headerRow.className = 'card-header-row';
@@ -1219,6 +1263,13 @@
         recBadge.className = 'badge recurring-badge';
         recBadge.textContent = `🔄 ${task.recurrence}`;
         metaRow.appendChild(recBadge);
+      }
+
+      if (task.googleSynced) {
+        const syncBadge = document.createElement('span');
+        syncBadge.className = 'badge synced-badge';
+        syncBadge.textContent = '✓ GCal';
+        metaRow.appendChild(syncBadge);
       }
 
       if (task.date) {
@@ -1338,7 +1389,7 @@
         id: Date.now().toString(),
         label: label,
         timestamp: timestampStr,
-        snapshot: JSON.parse(JSON.stringify(tasks)) // Deep copy current board state
+        snapshot: JSON.parse(JSON.stringify(tasks))
       };
 
       boardVersions.unshift(newVersion);
