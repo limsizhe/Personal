@@ -81,28 +81,6 @@
   }
   .hint-btn:hover{color:var(--clay);}
 
-  /* Google Calendar Connect Button Style */
-  .calendar-sync-btn {
-    background: transparent;
-    border: 1px solid var(--text-on-paper-dim);
-    font-family: 'JetBrains Mono';
-    font-size: 11px;
-    color: var(--text-on-paper);
-    padding: 4px 10px;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: all 0.15s ease;
-  }
-  .calendar-sync-btn:hover {
-    background: rgba(0, 0, 0, 0.05);
-    border-color: var(--clay);
-  }
-  .calendar-sync-btn.connected {
-    background: var(--sage);
-    color: var(--paper);
-    border-color: var(--sage);
-  }
-
   /* Finance */
   .budget-row{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:8px;}
   .budget-edit{display:flex; align-items:baseline; gap:6px; font-family:'JetBrains Mono'; font-size:13px; color:var(--text-on-paper-dim);}
@@ -183,6 +161,8 @@
     align-items:center; flex-wrap:wrap; gap:8px;
     font-family:'JetBrains Mono'; font-size:11px; color:var(--text-on-dark-dim);
   }
+  .footer-left{display:flex; align-items:center; gap:12px;}
+  .version-badge{opacity:0.4; font-size:10px; letter-spacing:0.02em;}
   .footer button{
     background:none; border:none; color:var(--text-on-dark-dim); font-family:'JetBrains Mono'; font-size:11px;
     text-decoration:underline; cursor:pointer; padding:0;
@@ -193,7 +173,6 @@
     position:fixed; bottom:20px; right:20px; background:var(--ink-panel); color:var(--text-on-dark);
     border:1px solid var(--rule-dark); padding:10px 16px; border-radius:8px; font-size:13px;
     font-family:'Inter'; opacity:0; transform:translateY(8px); transition:all .25s ease; pointer-events:none;
-    z-index:9999;
   }
   .toast.show{opacity:1; transform:translateY(0);}
 </style>
@@ -271,7 +250,6 @@
           <p class="card-eyebrow">Quick list</p>
           <h2 class="card-title">Today</h2>
         </div>
-        <button class="calendar-sync-btn" id="syncCalendarBtn">📅 Link Google Calendar</button>
       </div>
 
       <div class="field-row">
@@ -285,7 +263,10 @@
   </div>
 
   <div class="footer">
-    <span>saved automatically · private to you</span>
+    <div class="footer-left">
+      <span>saved automatically · private to you</span>
+      <span class="version-badge" id="versionDisplay">v1.0.0</span>
+    </div>
     <button id="clearAllBtn">clear all dashboard data</button>
   </div>
 
@@ -293,11 +274,12 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="https://accounts.google.com/gsi/client" async defer></script>
-
 <script>
 (function(){
   "use strict";
+
+  // Increment this string whenever you commit significant structural updates
+  const APP_VERSION = "v1.1.2";
 
   const FINANCE_KEY = 'dashboard-finance';
   const HABITS_KEY = 'dashboard-habits';
@@ -306,14 +288,6 @@
   let finance = { budget: 0, expenses: [] };
   let habits = { list: [], completions: {} };
   let todos = [];
-  
-  // --- Google OAuth State Parameters ---
-  let googleAccessToken = null;
-  let tokenClient = null;
-  
-  // Paste your actual Web Client ID here from the Cloud Console
-  const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
-  const CALENDAR_SCOPE = 'https://www.googleapis.com/auth/calendar.events';
 
   const CATEGORY_COLOR = '#D2784F';
 
@@ -356,71 +330,6 @@
       if(!res) showToast("Couldn't save — try again");
     }catch(e){
       showToast("Couldn't save — try again");
-    }
-  }
-
-  // ---------- Google Calendar Integrations ----------
-  function initGoogleOAuth() {
-    if (typeof google !== 'undefined' && google.accounts && google.accounts.oauth2) {
-      tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: GOOGLE_CLIENT_ID,
-        scope: CALENDAR_SCOPE,
-        callback: (tokenResponse) => {
-          if (tokenResponse.access_token) {
-            googleAccessToken = tokenResponse.access_token;
-            const syncBtn = document.getElementById('syncCalendarBtn');
-            syncBtn.textContent = '✓ Calendar Connected';
-            syncBtn.classList.add('connected');
-            showToast('Successfully linked Google Calendar!');
-          }
-        },
-      });
-    } else {
-      // Retry in case script loading lags slightly behind runtime execution loop
-      setTimeout(initGoogleOAuth, 250);
-    }
-  }
-
-  document.getElementById('syncCalendarBtn').addEventListener('click', () => {
-    if (GOOGLE_CLIENT_ID === 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com') {
-      showToast('Error: Please update the placeholder GOOGLE_CLIENT_ID in the script code.');
-      return;
-    }
-    if (tokenClient) {
-      tokenClient.requestAccessToken({ prompt: 'consent' });
-    } else {
-      showToast('Google Identity library initialization pending...');
-    }
-  });
-
-  async function pushTodoToGoogleCalendar(todoText) {
-    if (!googleAccessToken) return;
-
-    const todayIsoStr = todayStr(); // Format: YYYY-MM-DD
-    const eventPayload = {
-      summary: todoText,
-      description: 'Logged automatically via your Personal Ledger Dashboard.',
-      start: { date: todayIsoStr },
-      end: { date: todayIsoStr } // Standard mapping rules dictate all-day bounds matches the primary date
-    };
-
-    try {
-      const response = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${googleAccessToken}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(eventPayload)
-      });
-      
-      if (response.ok) {
-        showToast('✓ Synced to Google Calendar');
-      } else {
-        console.error('Calendar Event creation mapping failed:', await response.text());
-      }
-    } catch (err) {
-      console.error('Network exception routing event to Google endpoint:', err);
     }
   }
 
@@ -707,10 +616,6 @@
     if(!val){ input.focus(); return; }
     todos.push({ id: uid(), text: val, done: false });
     saveKey(TODOS_KEY, todos);
-    
-    // Fire asynchronous calendar synchronization if active token is validated
-    pushTodoToGoogleCalendar(val);
-    
     input.value = '';
     renderTodos(); renderHeader();
   });
@@ -746,9 +651,9 @@
     renderFinance();
     renderHabits();
     renderTodos();
-    
-    // Boot up the identity management layer
-    initGoogleOAuth();
+
+    // Map the active runtime version parameter to the element node
+    document.getElementById('versionDisplay').textContent = APP_VERSION;
 
     document.getElementById('loading').style.display = 'none';
     const app = document.getElementById('app');
