@@ -515,7 +515,7 @@
 
       <div class="sheet-config-panel">
         <label style="font-size: 0.85rem; color: var(--gold-color);">Google Apps Script Status</label>
-        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;">The dashboard is configured to automatically parse balances directly from your microservice backend.</p>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;">The dashboard automatically requests balances directly from your secure microservice endpoint.</p>
         <div class="input-row">
           <button class="action-btn primary" id="refreshSheetBtn" style="border-radius: 8px; white-space: nowrap;">🔄 Refresh Live Data</button>
         </div>
@@ -584,7 +584,6 @@
   </div>
 
   <script>
-    // Global Navigation View Router Engine
     window.switchView = function(viewId) {
       document.querySelectorAll('.app-view').forEach(view => {
         view.classList.remove('active-view');
@@ -595,17 +594,14 @@
     };
 
     document.addEventListener('DOMContentLoaded', () => {
-      // --- HARDCODED APPS SCRIPT ENDPOINT ---
       const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbykmdGppgmmMZF9vp4jNfHCyoGUHBsbsO44hfx9aG6jVfYtzGU-JbmYF5IbwYobWujg/exec";
 
-      // --- STATE SCHEMAS ---
       let state = {
         tasks: [],
         netWorth: 0,
         breakdown: { cash: 0, investments: 0, liabilities: 0 }
       };
 
-      // --- LOCAL STORAGE OPERATORS ---
       const loadState = () => {
         const savedTasks = localStorage.getItem('nexus_tasks');
         const savedNetWorth = localStorage.getItem('nexus_net_worth');
@@ -624,7 +620,6 @@
         renderFinancials();
       };
 
-      // --- DOM ELEMENT REFERENCES MAPS ---
       const DOM = {
         taskModal: document.getElementById('taskModal'),
         taskForm: document.getElementById('taskForm'),
@@ -635,7 +630,6 @@
         cardLists: document.querySelectorAll('.card-list'),
         mobileNavBtns: document.querySelectorAll('.mobile-nav-btn'),
         
-        // Financial Items
         refreshSheetBtn: document.getElementById('refreshSheetBtn'),
         networthDisplay: document.getElementById('networthDisplay'),
         syncStatusLabel: document.getElementById('syncStatusLabel'),
@@ -644,7 +638,6 @@
         valLiabilities: document.getElementById('valLiabilities')
       };
 
-      // --- FORM MODAL CONTROLS ---
       if(DOM.openTaskFormBtn) DOM.openTaskFormBtn.addEventListener('click', () => DOM.taskModal.classList.add('active'));
       if(DOM.mobileFabBtn) DOM.mobileFabBtn.addEventListener('click', () => DOM.taskModal.classList.add('active'));
       if(DOM.closeTaskModalBtn) DOM.closeTaskModalBtn.addEventListener('click', () => DOM.taskModal.classList.remove('active'));
@@ -653,7 +646,6 @@
         if(e.target === DOM.taskModal) DOM.taskModal.classList.remove('active');
       });
 
-      // --- KANBAN CRUD CORE ENGINE OPERATIONS ---
       DOM.taskForm.addEventListener('submit', (e) => {
         e.preventDefault();
         const title = document.getElementById('taskTitle').value.trim();
@@ -696,7 +688,6 @@
         });
       });
 
-      // --- DRAG AND DROP RUNTIME INTEGRATIONS ENGINE ---
       let draggedCardId = null;
       
       const initDragEvents = (card) => {
@@ -735,7 +726,6 @@
         });
       });
 
-      // --- RENDERING TASK PIPELINE LOGIC ---
       const renderTasks = () => {
         DOM.cardLists.forEach(l => l.innerHTML = '');
         const counters = { future: 0, 'this-week': 0, today: 0, completed: 0 };
@@ -784,7 +774,7 @@
         }
       };
 
-      // --- LIVE API PIPELINE REFACTOR ---
+      // --- FINANCIAL CONVERTER TELEMETRY ENGINE ---
       const fetchLiveFinancialTelemetry = async () => {
         DOM.syncStatusLabel.innerText = "⏳ Querying microservice API telemetry...";
         
@@ -794,10 +784,9 @@
           
           const data = await response.json();
           
-          // Maps JSON properties safely; applies processing defaults if structural keys vary
-          const cashValue = parseFloat(data.cash || data.Cash || 0);
-          const investmentValue = parseFloat(data.investments || data.Investments || 0);
-          const liabilityValue = parseFloat(data.liabilities || data.Liabilities || 0);
+          const cashValue = parseFloat(data.cash || 0);
+          const investmentValue = parseFloat(data.investments || 0);
+          const liabilityValue = parseFloat(data.liabilities || 0);
           
           state.breakdown.cash = cashValue;
           state.breakdown.investments = investmentValue;
@@ -817,6 +806,7 @@
       }
 
       const renderFinancials = () => {
+        // Formatted to display in USD to align with your asset sheets
         const formatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
         
         DOM.networthDisplay.innerText = formatter.format(state.netWorth);
@@ -825,12 +815,11 @@
         DOM.valLiabilities.innerText = formatter.format(state.breakdown.liabilities);
       };
 
-      // --- INITIALIZATION ENGINE RUNNERS ---
       loadState();
       renderTasks();
       renderFinancials();
       
-      // Auto-trigger telemetry synchronizer on initial mount execution
+      // Auto-trigger synchronizer on startup
       fetchLiveFinancialTelemetry();
     });
   </script>
