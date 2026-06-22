@@ -244,14 +244,6 @@
       background-color: var(--gold-hover);
       border-color: var(--gold-hover);
     }
-    .action-btn.calendar-sync {
-      border-color: rgba(74, 144, 226, 0.4);
-      color: #7FB3EB;
-    }
-    .action-btn.calendar-sync:hover {
-      background-color: rgba(74, 144, 226, 0.1);
-      border-color: var(--calendar-color);
-    }
 
     /* Mobile Floating Action Button (FAB) */
     .mobile-fab {
@@ -522,18 +514,17 @@
       </header>
 
       <div class="sheet-config-panel">
-        <label style="font-size: 0.85rem; color: var(--gold-color);">Google Sheet Integration Settings</label>
-        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;">Paste your Google Sheet Web JSON API Endpoint or Document CSV Export URL below:</p>
+        <label style="font-size: 0.85rem; color: var(--gold-color);">Google Apps Script Status</label>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;">The dashboard is configured to automatically parse balances directly from your microservice backend.</p>
         <div class="input-row">
-          <input type="text" id="sheetUrlInput" placeholder="https://docs.google.com/spreadsheets/d/e/2PACX-...-xxxx/pub?output=csv" autocomplete="off">
-          <button class="action-btn primary" id="connectSheetBtn" style="border-radius: 8px; white-space: nowrap;">Connect Link</button>
+          <button class="action-btn primary" id="refreshSheetBtn" style="border-radius: 8px; white-space: nowrap;">🔄 Refresh Live Data</button>
         </div>
       </div>
 
       <div class="networth-hero">
         <div class="networth-label">Current Evaluated Net Worth</div>
         <div class="networth-amount" id="networthDisplay">$0.00</div>
-        <div class="sync-status" id="syncStatusLabel">🔴 Disconnected — No Source Active</div>
+        <div class="sync-status" id="syncStatusLabel">⏳ Connecting Engine...</div>
       </div>
 
       <div class="finance-grid">
@@ -604,10 +595,12 @@
     };
 
     document.addEventListener('DOMContentLoaded', () => {
+      // --- HARDCODED APPS SCRIPT ENDPOINT ---
+      const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbykmdGppgmmMZF9vp4jNfHCyoGUHBsbsO44hfx9aG6jVfYtzGU-JbmYF5IbwYobWujg/exec";
+
       // --- STATE SCHEMAS ---
       let state = {
         tasks: [],
-        sheetUrl: '',
         netWorth: 0,
         breakdown: { cash: 0, investments: 0, liabilities: 0 }
       };
@@ -615,19 +608,16 @@
       // --- LOCAL STORAGE OPERATORS ---
       const loadState = () => {
         const savedTasks = localStorage.getItem('nexus_tasks');
-        const savedSheetUrl = localStorage.getItem('nexus_sheet_url');
         const savedNetWorth = localStorage.getItem('nexus_net_worth');
         const savedBreakdown = localStorage.getItem('nexus_breakdown');
 
         if (savedTasks) state.tasks = JSON.parse(savedTasks);
-        if (savedSheetUrl) state.sheetUrl = savedSheetUrl;
         if (savedNetWorth) state.netWorth = parseFloat(savedNetWorth);
         if (savedBreakdown) state.breakdown = JSON.parse(savedBreakdown);
       };
 
       const saveState = () => {
         localStorage.setItem('nexus_tasks', JSON.stringify(state.tasks));
-        localStorage.setItem('nexus_sheet_url', state.sheetUrl);
         localStorage.setItem('nexus_net_worth', state.netWorth.toString());
         localStorage.setItem('nexus_breakdown', JSON.stringify(state.breakdown));
         renderTasks();
@@ -646,8 +636,7 @@
         mobileNavBtns: document.querySelectorAll('.mobile-nav-btn'),
         
         // Financial Items
-        sheetUrlInput: document.getElementById('sheetUrlInput'),
-        connectSheetBtn: document.getElementById('connectSheetBtn'),
+        refreshSheetBtn: document.getElementById('refreshSheetBtn'),
         networthDisplay: document.getElementById('networthDisplay'),
         syncStatusLabel: document.getElementById('syncStatusLabel'),
         valCash: document.getElementById('valCash'),
@@ -660,7 +649,6 @@
       if(DOM.mobileFabBtn) DOM.mobileFabBtn.addEventListener('click', () => DOM.taskModal.classList.add('active'));
       if(DOM.closeTaskModalBtn) DOM.closeTaskModalBtn.addEventListener('click', () => DOM.taskModal.classList.remove('active'));
 
-      // Close modal on background overlay click
       DOM.taskModal.addEventListener('click', (e) => {
         if(e.target === DOM.taskModal) DOM.taskModal.classList.remove('active');
       });
@@ -697,7 +685,6 @@
         }
       };
 
-      // Mobile column navigational switcher mapping array layout matrix
       DOM.mobileNavBtns.forEach(btn => {
         btn.addEventListener('click', () => {
           DOM.mobileNavBtns.forEach(b => b.classList.remove('active'));
@@ -785,7 +772,6 @@
           if(targetList) targetList.appendChild(li);
         });
 
-        // Add placeholders if empty
         DOM.cardLists.forEach(list => {
           if (list.children.length === 0) {
             list.innerHTML = `<div class="empty-note">No tasks assigned here.</div>`;
@@ -798,82 +784,54 @@
         }
       };
 
-      // --- GOOGLE SHEETS LIVE FINANCIAL INTEGRATION API PARSER ---
-      const fetchGoogleSheetData = async (url) => {
-        DOM.syncStatusLabel.innerText = "⏳ Fetching and processing spreadsheet metrics data...";
+      // --- LIVE API PIPELINE REFACTOR ---
+      const fetchLiveFinancialTelemetry = async () => {
+        DOM.syncStatusLabel.innerText = "⏳ Querying microservice API telemetry...";
         
-        let docIdMatch = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
-        let cleanDocId = docIdMatch ? docIdMatch[1] : url.trim();
-
-        if(!cleanDocId) {
-          alert("Invalid document URL or identification format pattern provided.");
-          DOM.syncStatusLabel.innerText = "🔴 Disconnected — Invalid URL Source";
-          return;
-        }
-
         try {
-          let cashValue, investmentValue, liabilityValue;
-
-          if(url.startsWith('http')) {
-            const response = await fetch(url);
-            if (!response.ok) throw new Error("Network query fault response code encountered.");
-            const textData = await response.text();
-            
-            // Structured fallback defaults for evaluation metrics parse schemas
-            cashValue = 42500.00;
-            investmentValue = 185300.00;
-            liabilityValue = 12400.00;
-          } else {
-            // Safe simulation processing sandbox profile metrics environment
-            cashValue = Math.floor(Math.random() * 20000) + 30000;
-            investmentValue = Math.floor(Math.random() * 50000) + 150000;
-            liabilityValue = Math.floor(Math.random() * 5000) + 10000;
-          }
-
-          state.sheetUrl = url;
+          const response = await fetch(GOOGLE_SCRIPT_URL);
+          if (!response.ok) throw new Error("API stream connection error dropped.");
+          
+          const data = await response.json();
+          
+          // Maps JSON properties safely; applies processing defaults if structural keys vary
+          const cashValue = parseFloat(data.cash || data.Cash || 0);
+          const investmentValue = parseFloat(data.investments || data.Investments || 0);
+          const liabilityValue = parseFloat(data.liabilities || data.Liabilities || 0);
+          
           state.breakdown.cash = cashValue;
           state.breakdown.investments = investmentValue;
           state.breakdown.liabilities = liabilityValue;
           state.netWorth = (cashValue + investmentValue) - liabilityValue;
           
+          DOM.syncStatusLabel.innerText = "🟢 Sync Active — Connected to Cloud API";
           saveState();
         } catch (error) {
-          console.error(error);
-          DOM.syncStatusLabel.innerText = "❌ Connection failed. Check document permission rules.";
+          console.error("Telemetry fetch error details:", error);
+          DOM.syncStatusLabel.innerText = "❌ Sync failed. Check Web App CORS rules or access level permissions.";
         }
       };
 
-      if(DOM.connectSheetBtn) {
-        DOM.connectSheetBtn.addEventListener('click', () => {
-          const url = DOM.sheetUrlInput.value.trim();
-          if(url) fetchGoogleSheetData(url);
-        });
+      if(DOM.refreshSheetBtn) {
+        DOM.refreshSheetBtn.addEventListener('click', fetchLiveFinancialTelemetry);
       }
 
       const renderFinancials = () => {
-        if(state.sheetUrl && DOM.sheetUrlInput) DOM.sheetUrlInput.value = state.sheetUrl;
-        
-        // Value formatter converter engine helper
         const formatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
         
         DOM.networthDisplay.innerText = formatter.format(state.netWorth);
         DOM.valCash.innerText = formatter.format(state.breakdown.cash);
         DOM.valInvestments.innerText = formatter.format(state.breakdown.investments);
         DOM.valLiabilities.innerText = formatter.format(state.breakdown.liabilities);
-
-        if(state.sheetUrl) {
-          let docIdMatch = state.sheetUrl.match(/\/d\/([a-zA-Z0-9-_]+)/);
-          let cleanDocId = docIdMatch ? docIdMatch[1] : "Active Config";
-          DOM.syncStatusLabel.innerText = `🟢 Connected Live — Sheet ID: ...${cleanDocId.substring(0,6)}... Sync Active`;
-        } else {
-          DOM.syncStatusLabel.innerText = "🔴 Disconnected — No Source Active";
-        }
       };
 
-      // --- INITIALIZATION CODES ---
+      // --- INITIALIZATION ENGINE RUNNERS ---
       loadState();
       renderTasks();
       renderFinancials();
+      
+      // Auto-trigger telemetry synchronizer on initial mount execution
+      fetchLiveFinancialTelemetry();
     });
   </script>
 </body>
