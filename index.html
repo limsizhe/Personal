@@ -165,10 +165,13 @@
       font-size: 0.85rem;
       color: var(--text-muted);
     }
-    .finance-grid {
+    
+    /* Dynamically Adaptive Grid Setup */
+    .dynamic-finance-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
       gap: 20px;
+      margin-bottom: 40px;
     }
     .finance-stat-card {
       background-color: var(--panel-bg);
@@ -176,11 +179,71 @@
       border-radius: 10px;
       padding: 20px;
     }
+    .finance-stat-card label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
     .stat-val {
-      font-size: 1.5rem;
+      font-size: 1.6rem;
       font-weight: 600;
       margin-top: 6px;
+      color: #4FC1E9;
     }
+
+    /* Inventory Breakdown Data Table Structural Layout Styles */
+    .table-section-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.8rem;
+      margin: 40px 0 16px 0;
+      color: var(--text-main);
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 8px;
+    }
+    .table-responsive-wrapper {
+      background-color: var(--panel-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .asset-data-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.9rem;
+    }
+    .asset-data-table th {
+      background-color: var(--card-bg);
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 1px;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .asset-data-table td {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border-color);
+      color: var(--text-main);
+    }
+    .asset-data-table tr:hover td {
+      background-color: rgba(237, 230, 214, 0.02);
+    }
+    
+    /* Type & Bucket Pill Badge Elements styling */
+    .table-badge {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+    .badge-type { background-color: #314d56; color: #a4cbd6; }
+    .badge-bucket { background-color: #443c2c; color: #dcbc82; }
 
     /* Task Tracker Native CSS Rules Styling */
     header {
@@ -421,7 +484,6 @@
 
     @media (max-width: 768px) {
       .portal-grid { grid-template-columns: 1fr; gap: 20px; }
-      .finance-grid { grid-template-columns: 1fr; }
       .board { grid-template-columns: 1fr; gap: 0; }
       .column { display: none; min-height: auto; background-color: transparent; padding: 0; }
       .column.active-column { display: flex; }
@@ -429,6 +491,8 @@
       .mobile-nav { display: grid; }
       .mobile-action-select-wrapper { display: block; }
       .app-view { padding: 20px 14px; }
+      .asset-data-table th:nth-child(3), .asset-data-table td:nth-child(3),
+      .asset-data-table th:nth-child(4), .asset-data-table td:nth-child(4) { display: none; }
     }
   </style>
 </head>
@@ -522,24 +586,32 @@
       </div>
 
       <div class="networth-hero">
-        <div class="networth-label">Current Evaluated Net Worth</div>
+        <div class="networth-label">Calculated Net Worth</div>
         <div class="networth-amount" id="networthDisplay">$0.00</div>
         <div class="sync-status" id="syncStatusLabel">⏳ Connecting Engine...</div>
       </div>
 
-      <div class="finance-grid">
-        <div class="finance-stat-card">
-          <label>Liquid Cash & Checking</label>
-          <div class="stat-val" id="valCash" style="color: #5D9CEC;">$0.00</div>
-        </div>
-        <div class="finance-stat-card">
-          <label>Investment Portfolio</label>
-          <div class="stat-val" id="valInvestments" style="color: #4FC1E9;">$0.00</div>
-        </div>
-        <div class="finance-stat-card">
-          <label>Total Outstanding Liabilities</label>
-          <div class="stat-val" id="valLiabilities" style="color: #EC87C0;">$0.00</div>
-        </div>
+      <div class="dynamic-finance-grid" id="dynamicGridRow"></div>
+
+      <h2 class="table-section-title">Asset Inventory Breakdown</h2>
+      <div class="table-responsive-wrapper">
+        <table class="asset-data-table">
+          <thead>
+            <tr>
+              <th>Investment Asset</th>
+              <th>Type</th>
+              <th>Currency</th>
+              <th>Units</th>
+              <th>Amount (USD Equivalent)</th>
+              <th>Bucket</th>
+            </tr>
+          </thead>
+          <tbody id="assetTableBody">
+            <tr>
+              <td colspan="6" style="text-align: center; color: var(--text-muted); font-style: italic; padding: 30px;">No active stream synchronized yet. Click refresh to pull data.</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
@@ -599,23 +671,27 @@
       let state = {
         tasks: [],
         netWorth: 0,
-        breakdown: { cash: 0, investments: 0, liabilities: 0 }
+        bucketTotals: {},
+        items: []
       };
 
       const loadState = () => {
         const savedTasks = localStorage.getItem('nexus_tasks');
         const savedNetWorth = localStorage.getItem('nexus_net_worth');
-        const savedBreakdown = localStorage.getItem('nexus_breakdown');
+        const savedBuckets = localStorage.getItem('nexus_bucket_totals');
+        const savedItems = localStorage.getItem('nexus_items_breakdown');
 
         if (savedTasks) state.tasks = JSON.parse(savedTasks);
         if (savedNetWorth) state.netWorth = parseFloat(savedNetWorth);
-        if (savedBreakdown) state.breakdown = JSON.parse(savedBreakdown);
+        if (savedBuckets) state.bucketTotals = JSON.parse(savedBuckets);
+        if (savedItems) state.items = JSON.parse(savedItems);
       };
 
       const saveState = () => {
         localStorage.setItem('nexus_tasks', JSON.stringify(state.tasks));
         localStorage.setItem('nexus_net_worth', state.netWorth.toString());
-        localStorage.setItem('nexus_breakdown', JSON.stringify(state.breakdown));
+        localStorage.setItem('nexus_bucket_totals', JSON.stringify(state.bucketTotals));
+        localStorage.setItem('nexus_items_breakdown', JSON.stringify(state.items));
         renderTasks();
         renderFinancials();
       };
@@ -633,9 +709,8 @@
         refreshSheetBtn: document.getElementById('refreshSheetBtn'),
         networthDisplay: document.getElementById('networthDisplay'),
         syncStatusLabel: document.getElementById('syncStatusLabel'),
-        valCash: document.getElementById('valCash'),
-        valInvestments: document.getElementById('valInvestments'),
-        valLiabilities: document.getElementById('valLiabilities')
+        dynamicGridRow: document.getElementById('dynamicGridRow'),
+        assetTableBody: document.getElementById('assetTableBody')
       };
 
       if(DOM.openTaskFormBtn) DOM.openTaskFormBtn.addEventListener('click', () => DOM.taskModal.classList.add('active'));
@@ -774,7 +849,7 @@
         }
       };
 
-      // --- FINANCIAL CONVERTER TELEMETRY ENGINE ---
+      // --- DYNAMIC FINANCIAL TELEMETRY ENGINE LAYER ---
       const fetchLiveFinancialTelemetry = async () => {
         DOM.syncStatusLabel.innerText = "⏳ Querying microservice API telemetry...";
         
@@ -782,22 +857,28 @@
           const response = await fetch(GOOGLE_SCRIPT_URL);
           if (!response.ok) throw new Error("API stream connection error dropped.");
           
-          const data = await response.json();
+          const resData = await response.json();
           
-          const cashValue = parseFloat(data.cash || 0);
-          const investmentValue = parseFloat(data.investments || 0);
-          const liabilityValue = parseFloat(data.liabilities || 0);
+          state.bucketTotals = resData.bucketTotals || {};
+          state.items = resData.items || [];
           
-          state.breakdown.cash = cashValue;
-          state.breakdown.investments = investmentValue;
-          state.breakdown.liabilities = liabilityValue;
-          state.netWorth = (cashValue + investmentValue) - liabilityValue;
+          // Compute overall net worth dynamically based on bucket configuration labels
+          let calculatedNetWorth = 0;
+          for (let bucket in state.bucketTotals) {
+            let labelLower = bucket.toLowerCase();
+            if (labelLower.includes('liability') || labelLower.includes('debt') || labelLower.includes('loan')) {
+              calculatedNetWorth -= state.bucketTotals[bucket];
+            } else {
+              calculatedNetWorth += state.bucketTotals[bucket];
+            }
+          }
+          state.netWorth = calculatedNetWorth;
           
           DOM.syncStatusLabel.innerText = "🟢 Sync Active — Connected to Cloud API";
           saveState();
         } catch (error) {
           console.error("Telemetry fetch error details:", error);
-          DOM.syncStatusLabel.innerText = "❌ Sync failed. Check Web App CORS rules or access level permissions.";
+          DOM.syncStatusLabel.innerText = "❌ Sync failed. Verify access permissions.";
         }
       };
 
@@ -806,20 +887,57 @@
       }
 
       const renderFinancials = () => {
-        // Formatted to display in USD to align with your asset sheets
         const formatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
         
+        // 1. Update overall Net Worth hero display
         DOM.networthDisplay.innerText = formatter.format(state.netWorth);
-        DOM.valCash.innerText = formatter.format(state.breakdown.cash);
-        DOM.valInvestments.innerText = formatter.format(state.breakdown.investments);
-        DOM.valLiabilities.innerText = formatter.format(state.breakdown.liabilities);
+        
+        // 2. Build out dynamic summary metric panels
+        let gridHTML = "";
+        for (let bucket in state.bucketTotals) {
+          let colorStyle = "color: #4FC1E9;"; // Default variant accent color
+          let normBucket = bucket.toLowerCase();
+          
+          if (normBucket.includes('saving') || normBucket.includes('cash')) colorStyle = "color: #5D9CEC;";
+          if (normBucket.includes('bond') || normBucket.includes('fixed')) colorStyle = "color: #8EBA99;";
+          if (normBucket.includes('liability') || normBucket.includes('debt') || normBucket.includes('loan')) colorStyle = "color: #EC87C0;";
+          
+          gridHTML += `
+            <div class="finance-stat-card">
+              <label>${bucket}</label>
+              <div class="stat-val" style="${colorStyle}">${formatter.format(state.bucketTotals[bucket])}</div>
+            </div>
+          `;
+        }
+        DOM.dynamicGridRow.innerHTML = gridHTML || `<div style="color: var(--text-muted); font-style: italic; padding: 10px;">No categories mapped yet.</div>`;
+        
+        // 3. Populate raw structural data inventory grid row items
+        if (!state.items || state.items.length === 0) {
+          DOM.assetTableBody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); font-style: italic; padding: 24px;">No localized storage active. Click Refresh to synchronize properties.</td></tr>`;
+          return;
+        }
+        
+        let tableHTML = "";
+        state.items.forEach(item => {
+          tableHTML += `
+            <tr>
+              <td style="font-weight: 500;">${item.name}</td>
+              <td><span class="table-badge badge-type">${item.type}</span></td>
+              <td style="color: var(--text-muted); font-weight: 600;">${item.currency}</td>
+              <td>${item.unit}</td>
+              <td style="font-weight: 600; text-align: right; padding-right: 40px;">${formatter.format(item.amount)}</td>
+              <td><span class="table-badge badge-bucket">${item.bucket}</span></td>
+            </tr>
+          `;
+        });
+        DOM.assetTableBody.innerHTML = tableHTML;
       };
 
       loadState();
       renderTasks();
       renderFinancials();
       
-      // Auto-trigger synchronizer on startup
+      // Auto-trigger synchronizer engine parsing logic loop execution on boot
       fetchLiveFinancialTelemetry();
     });
   </script>
