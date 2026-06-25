@@ -195,7 +195,7 @@
       color: #4FC1E9;
     }
 
-    /* Graphical Projection Panel */
+    /* Graphical Projection Panel - Optimized heights */
     .chart-container-panel {
       background-color: var(--panel-bg);
       border: 1px solid var(--border-color);
@@ -203,21 +203,58 @@
       padding: 24px;
       margin: 30px 0;
     }
+    .chart-relative-wrapper {
+      position: relative;
+      width: 100%;
+      height: 500px; /* Increased default height */
+    }
 
-    /* Inventory Breakdown Data Table Structural Layout Styles */
+    /* Collapsible Table Section UI Components */
+    .section-header-toggle {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 40px 0 16px 0;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 8px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .section-header-toggle:hover .table-section-title {
+      color: var(--gold-hover);
+    }
     .table-section-title {
       font-family: 'Playfair Display', serif;
       font-size: 1.8rem;
-      margin: 40px 0 16px 0;
       color: var(--text-main);
-      border-bottom: 1px solid var(--border-color);
-      padding-bottom: 8px;
+      margin: 0;
+      border-bottom: none;
+      padding-bottom: 0;
     }
+    .toggle-indicator {
+      font-size: 0.9rem;
+      background-color: rgba(237, 230, 214, 0.08);
+      color: var(--text-muted);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-weight: 600;
+      transition: all 0.2s ease;
+    }
+    
+    /* Expandable Table Container States */
+    .expandable-container {
+      display: none; /* Collapsed state setup by default */
+      transition: all 0.3s ease;
+    }
+    .expandable-container.expanded {
+      display: block;
+    }
+
     .table-responsive-wrapper {
       background-color: var(--panel-bg);
       border: 1px solid var(--border-color);
       border-radius: 12px;
-      overflow: hidden;
+      overflow-x: auto;
       margin-bottom: 30px;
     }
     .asset-data-table {
@@ -235,11 +272,13 @@
       letter-spacing: 1px;
       padding: 14px 18px;
       border-bottom: 1px solid var(--border-color);
+      white-space: nowrap;
     }
     .asset-data-table td {
       padding: 14px 18px;
       border-bottom: 1px solid var(--border-color);
       color: var(--text-main);
+      white-space: nowrap;
     }
     .asset-data-table tr:hover td {
       background-color: rgba(237, 230, 214, 0.02);
@@ -492,7 +531,6 @@
     .modal-content { padding: 20px; }
     .task-form { display: flex; flex-direction: column; gap: 16px; }
     .form-group { display: flex; flex-direction: column; gap: 6px; }
-    label { font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; }
     input[type="text"], input[type="date"], select {
       width: 100%; min-height: 44px; padding: 10px; border: 1px solid var(--border-color);
       border-radius: 8px; background-color: var(--card-bg); color: var(--text-main); font-family: inherit;
@@ -500,6 +538,7 @@
     .submit-btn { min-height: 46px; background-color: var(--gold-color); border: none; border-radius: 8px; font-weight: 600; cursor: pointer; color: #121E22; }
     .submit-btn:hover { background-color: var(--gold-hover); }
 
+    /* Smartphone Optimization Overrides */
     @media (max-width: 768px) {
       .portal-grid { grid-template-columns: 1fr; gap: 20px; }
       .board { grid-template-columns: 1fr; gap: 0; }
@@ -509,8 +548,12 @@
       .mobile-nav { display: grid; }
       .mobile-action-select-wrapper { display: block; }
       .app-view { padding: 20px 14px; }
-      .asset-data-table th:nth-child(3), .asset-data-table td:nth-child(3),
-      .asset-data-table th:nth-child(4), .asset-data-table td:nth-child(4) { display: none; }
+      .networth-amount { font-size: 2.5rem; }
+      
+      /* Make charts taller and occupy more screen depth on smartphones */
+      .chart-relative-wrapper {
+        height: 420px;
+      }
     }
   </style>
 </head>
@@ -612,56 +655,68 @@
       <div class="dynamic-finance-grid" id="dynamicGridRow"></div>
 
       <div class="chart-container-panel">
-        <h3 class="table-section-title" style="margin-top: 0; border-bottom: none;">20-Year Runway: Year-End True Leftover Assets vs Inflated Spending Drag</h3>
-        <div class="relative w-full h-[400px]">
+        <h3 class="table-section-title" style="margin-top: 0; border-bottom: none; font-size: 1.4rem;">20-Year Runway: Year-End True Leftover Assets vs Inflated Spending Drag</h3>
+        <div class="chart-relative-wrapper">
           <canvas id="projectionChart"></canvas>
         </div>
       </div>
 
-      <h2 class="table-section-title">20-Year Runway Projections Model</h2>
-      <div class="table-responsive-wrapper">
-        <table class="asset-data-table">
-          <thead>
-            <tr>
-              <th>Timeline</th>
-              <th>Nominal Stocks</th>
-              <th>Nominal Bonds</th>
-              <th>Nominal Cash</th>
-              <th>Gross Assets (Pre-Spend)</th>
-              <th>True Leftover (Post-Spend)</th>
-              <th>Safe Withdrawal (SWR)</th>
-              <th>Inflated Target Spending</th>
-              <th>Status Safety Check</th>
-            </tr>
-          </thead>
-          <tbody id="projectionTableBody">
-            <tr>
-              <td colspan="9" style="text-align: center; color: var(--text-muted); font-style: italic; padding: 25px;">No timeline runway telemetry synchronized yet.</td>
-            </tr>
-          </tbody>
-        </table>
+      <div class="section-header-toggle" onclick="toggleContainer('projectionsContainer', 'projToggleInd')">
+        <h2 class="table-section-title">20-Year Runway Projections Model</h2>
+        <span class="toggle-indicator" id="projToggleInd">▶ Expand</span>
+      </div>
+      <div class="expandable-container" id="projectionsContainer">
+        <div class="table-responsive-wrapper">
+          <table class="asset-data-table">
+            <thead>
+              <tr>
+                <th>Timeline</th>
+                <th>Nominal Stocks</th>
+                <th>Nominal Bonds</th>
+                <th>Nominal Cash</th>
+                <th>Gross Assets (Pre-Spend)</th>
+                <th>True Leftover (Post-Spend)</th>
+                <th>Safe Withdrawal (SWR)</th>
+                <th>Inflated Target Spending</th>
+                <th>Spending % of Gross</th>
+                <th>Status Safety Check</th>
+              </tr>
+            </thead>
+            <tbody id="projectionTableBody">
+              <tr>
+                <td colspan="10" style="text-align: center; color: var(--text-muted); font-style: italic; padding: 25px;">No timeline runway telemetry synchronized yet.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      <h2 class="table-section-title">Asset Inventory Breakdown</h2>
-      <div class="table-responsive-wrapper">
-        <table class="asset-data-table">
-          <thead>
-            <tr>
-              <th>Investment Asset</th>
-              <th>Type</th>
-              <th>Currency</th>
-              <th>Units</th>
-              <th>Amount (USD Equivalent)</th>
-              <th>Bucket</th>
-            </tr>
-          </thead>
-          <tbody id="assetTableBody">
-            <tr>
-              <td colspan="6" style="text-align: center; color: var(--text-muted); font-style: italic; padding: 30px;">No active stream synchronized yet. Click refresh to pull data.</td>
-            </tr>
-          </tbody>
-        </table>
+      <div class="section-header-toggle" onclick="toggleContainer('inventoryContainer', 'invToggleInd')">
+        <h2 class="table-section-title">Asset Inventory Breakdown</h2>
+        <span class="toggle-indicator" id="invToggleInd">▶ Expand</span>
       </div>
+      <div class="expandable-container" id="inventoryContainer">
+        <div class="table-responsive-wrapper">
+          <table class="asset-data-table">
+            <thead>
+              <tr>
+                <th>Investment Asset</th>
+                <th>Type</th>
+                <th>Currency</th>
+                <th>Units</th>
+                <th>Amount (USD Equivalent)</th>
+                <th>Bucket</th>
+              </tr>
+            </thead>
+            <tbody id="assetTableBody">
+              <tr>
+                <td colspan="6" style="text-align: center; color: var(--text-muted); font-style: italic; padding: 30px;">No active stream synchronized yet. Click refresh to pull data.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -705,13 +760,32 @@
   </div>
 
   <script>
+    // Global Navigation View Controller Engine
     window.switchView = function(viewId) {
       document.querySelectorAll('.app-view').forEach(view => {
         view.classList.remove('active-view');
       });
       const targetedView = document.getElementById(viewId);
       if(targetedView) targetedView.classList.add('active-view');
+      
+      // Force Chart resizing calculation loops when user loads the Finance Panel View
+      if(viewId === 'finance-view' && window.triggerChartResize) {
+        window.triggerChartResize();
+      }
       window.scrollTo(0, 0);
+    };
+
+    // Generic Toggle Selector Engine for Expandable Table Component Architectures
+    window.toggleContainer = function(containerId, indicatorId) {
+      const el = document.getElementById(containerId);
+      const ind = document.getElementById(indicatorId);
+      if(el.classList.contains('expanded')) {
+        el.classList.remove('expanded');
+        ind.innerText = "▶ Expand";
+      } else {
+        el.classList.add('expanded');
+        ind.innerText = "▼ Collapse";
+      }
     };
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -726,6 +800,7 @@
       };
 
       let chartInstance = null; 
+      const formatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 
       const loadState = () => {
         const savedTasks = localStorage.getItem('nexus_tasks');
@@ -888,153 +963,54 @@
               </select>
             </div>
           `;
+          
           initDragEvents(li);
-          const targetList = document.querySelector(`.card-list[data-column="${task.column}"]`);
-          if(targetList) targetList.appendChild(li);
+          const listTarget = Array.from(DOM.cardLists).find(ul => ul.getAttribute('data-column') === task.column);
+          if (listTarget) listTarget.appendChild(li);
         });
 
-        DOM.cardLists.forEach(list => {
-          if (list.children.length === 0) {
-            list.innerHTML = `<div class="empty-note">No tasks assigned here.</div>`;
-          }
-        });
-
-        for (const k in counters) {
-          if(document.getElementById(`count-${k}`)) document.getElementById(`count-${k}`).innerText = counters[k];
-          if(document.getElementById(`nav-count-${k}`)) document.getElementById(`nav-count-${k}`).innerText = counters[k];
-        }
-      };
-
-      // --- DYNAMIC FINANCIAL TELEMETRY ENGINE LAYER ---
-      const fetchLiveFinancialTelemetry = async () => {
-        DOM.syncStatusLabel.innerText = "⏳ Querying microservice API telemetry...";
-        
-        try {
-          const response = await fetch(GOOGLE_SCRIPT_URL);
-          if (!response.ok) throw new Error("API stream connection error dropped.");
-          
-          const resData = await response.json();
-          
-          state.bucketTotals = resData.bucketTotals || {};
-          state.items = resData.items || [];
-          state.projections = resData.projections || [];
-          
-          let calculatedNetWorth = 0;
-          for (let bucket in state.bucketTotals) {
-            let labelLower = bucket.toLowerCase();
-            if (labelLower.includes('liability') || labelLower.includes('debt') || labelLower.includes('loan')) {
-              calculatedNetWorth -= state.bucketTotals[bucket];
-            } else {
-              calculatedNetWorth += state.bucketTotals[bucket];
-            }
-          }
-          state.netWorth = calculatedNetWorth;
-          
-          DOM.syncStatusLabel.innerText = "🟢 Sync Active — Connected to Cloud API";
-          saveState();
-        } catch (error) {
-          console.error("Telemetry fetch error details:", error);
-          DOM.syncStatusLabel.innerText = "❌ Sync failed. Verify access permissions.";
-        }
-      };
-
-      if(DOM.refreshSheetBtn) {
-        DOM.refreshSheetBtn.addEventListener('click', fetchLiveFinancialTelemetry);
-      }
-
-      // Render Chart Module mapping your True Leftover Capital vs Spending Curves
-      const renderProjectionCharts = (projections) => {
-        const ctx = document.getElementById('projectionChart').getContext('2d');
-        
-        const timelines = projections.map(p => p.year);
-        const leftoverBalances = projections.map(p => p.trueLeftoverTotal);
-        const inflatedSpending = projections.map(p => p.inflatedSpending);
-
-        if (chartInstance) { chartInstance.destroy(); } 
-
-        chartInstance = new Chart(ctx, {
-          type: 'line',
-          data: {
-            labels: timelines,
-            datasets: [
-              {
-                label: 'True Leftover Wealth (Post-Spending Net Assets)',
-                data: leftoverBalances,
-                borderColor: '#10b981', // Solid Emerald Green
-                backgroundColor: 'rgba(16, 185, 129, 0.06)',
-                yAxisID: 'yLeft',
-                borderWidth: 3.5,
-                tension: 0.15,
-                fill: true
-              },
-              {
-                label: 'Inflated Annual Spending Drag',
-                data: inflatedSpending,
-                borderColor: '#D2784F', // Terracotta Red Accent
-                borderDash: [6, 4],
-                yAxisID: 'yRight',
-                borderWidth: 2,
-                tension: 0.1,
-                fill: false
-              }
-            ]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: { labels: { color: '#EDE6D6', font: { family: 'Inter', size: 11 } } },
-              tooltip: { mode: 'index', intersect: false }
-            },
-            scales: {
-              x: { grid: { color: 'rgba(237, 230, 214, 0.05)' }, ticks: { color: '#A9B8B2' } },
-              yLeft: {
-                type: 'linear',
-                display: true,
-                position: 'left',
-                grid: { color: 'rgba(237, 230, 214, 0.08)' },
-                ticks: { color: '#4FC1E9', callback: (v) => '$' + v.toLocaleString() },
-                title: { display: true, text: 'Surplus Portfolio Capital', color: '#4FC1E9' }
-              },
-              yRight: {
-                type: 'linear',
-                display: true,
-                position: 'right',
-                grid: { drawOnChartArea: false },
-                ticks: { color: '#D2784F', callback: (v) => '$' + v.toLocaleString() },
-                title: { display: true, text: 'Annual Budget Outlay Requirement', color: '#D2784F' }
-              }
-            }
-          }
+        // Set layout totals values on buttons and columns headers counters
+        Object.keys(counters).forEach(key => {
+          const countEl = document.getElementById(`count-${key}`);
+          const navCountEl = document.getElementById(`nav-count-${key}`);
+          if(countEl) countEl.innerText = counters[key];
+          if(navCountEl) navCountEl.innerText = counters[key];
         });
       };
 
       const renderFinancials = () => {
-        const formatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
-        
-        // 1. Update overall Net Worth hero display
+        if (!state.netWorth) return;
+
         DOM.networthDisplay.innerText = formatter.format(state.netWorth);
-        
-        // 2. Render Allocation summary metric panels
         DOM.dynamicGridRow.innerHTML = '';
-        for (let bucket in state.bucketTotals) {
-          let colorStyle = "color: #4FC1E9;"; 
-          let normBucket = bucket.toLowerCase();
-          
-          if (normBucket.includes('saving') || normBucket.includes('cash')) colorStyle = "color: #5D9CEC;";
-          if (normBucket.includes('bond') || normBucket.includes('fixed')) colorStyle = "color: #8EBA99;";
-          if (normBucket.includes('liability') || normBucket.includes('debt') || normBucket.includes('loan')) colorStyle = "color: #EC87C0;";
-          
-          const card = document.createElement('div');
-          card.className = "finance-stat-card";
-          card.innerHTML = `
-            <label>${bucket}</label>
-            <div class="stat-val" style="${colorStyle}">${formatter.format(state.bucketTotals[bucket])}</div>
-          `;
-          DOM.dynamicGridRow.appendChild(card);
+        
+        // Loop and render Category Asset cards elements row
+        Object.keys(state.bucketTotals).forEach(bucket => {
+          const val = state.bucketTotals[bucket];
+          const div = document.createElement('div');
+          div.className = 'finance-stat-card';
+          div.innerHTML = `<label>${bucket}</label><div class="stat-val">${formatter.format(val)}</div>`;
+          DOM.dynamicGridRow.appendChild(div);
+        });
+
+        // Render Inventory Table Array Rows
+        DOM.assetTableBody.innerHTML = '';
+        if (state.items && state.items.length > 0) {
+          state.items.forEach(item => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td><b>${item.asset}</b></td>
+              <td><span class="table-badge badge-type">${item.type}</span></td>
+              <td>${item.currency || 'USD'}</td>
+              <td>${item.units ? parseFloat(item.units).toLocaleString(undefined, {minimumFractionDigits: 2}) : '-'}</td>
+              <td style="font-weight:600;">${formatter.format(item.amount)}</td>
+              <td><span class="table-badge badge-get badge-bucket">${item.bucket}</span></td>
+            `;
+            DOM.assetTableBody.appendChild(tr);
+          });
         }
 
-        // 3. Render 20-Year Projections Table Matrix rows
+        // Render Projections Runway Table Array Rows with the updated Spending % metric
         DOM.projectionTableBody.innerHTML = '';
         if (state.projections && state.projections.length > 0) {
           state.projections.forEach(p => {
@@ -1044,52 +1020,174 @@
             if (p.status.includes('CRITICAL')) badgeClass = 'status-critical';
             else if (p.status.includes('DEFICIT')) badgeClass = 'status-risk';
             
+            // Handle percentage extraction (supports matching updated Gas engine schemas)
+            const spendingRatioPercent = p.spendingRatio ? (p.spendingRatio * 100).toFixed(2) : ((p.inflatedSpending / p.grossTotal) * 100).toFixed(2);
+            
+            let spendingRatioColor = 'color: var(--text-main);';
+            if (parseFloat(spendingRatioPercent) >= 4.00) spendingRatioColor = 'color: #D2784F; font-weight: 600;';
+            if (p.grossTotal <= 0) spendingRatioColor = 'color: var(--alert-color);';
+
             tr.innerHTML = `
               <td><b>${p.year}</b></td>
               <td>${formatter.format(p.stocks)}</td>
               <td>${formatter.format(p.bonds)}</td>
               <td>${formatter.format(p.cash)}</td>
               <td>${formatter.format(p.grossTotal)}</td>
-              <td style="color: #10b981; font-weight: 600;">${formatter.format(p.trueLeftoverTotal)}</td>
+              <td style="color: #8EBA99; font-weight: 600;">${formatter.format(p.trueLeftoverTotal)}</td>
               <td>${formatter.format(p.safeWithdrawal)}</td>
               <td style="color: #D2784F;">${formatter.format(p.inflatedSpending)}</td>
+              <td style="${spendingRatioColor}">${p.grossTotal > 0 ? spendingRatioPercent + '%' : '-'}</td>
               <td><span class="status-pill ${badgeClass}">${p.status}</span></td>
             `;
             DOM.projectionTableBody.appendChild(tr);
           });
           
-          // Trigger the canvas charts graphics drawing hook
           renderProjectionCharts(state.projections);
-        } else {
-          DOM.projectionTableBody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: var(--text-muted); font-style: italic; padding: 25px;">No timeline runway telemetry synchronized yet.</td></tr>`;
-        }
-        
-        // 4. Render Base Inventory Rows
-        DOM.assetTableBody.innerHTML = '';
-        if (state.items.length === 0) {
-          DOM.assetTableBody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); font-style: italic; padding: 30px;">No active stream inventory items loaded.</td></tr>`;
-        } else {
-          state.items.forEach(item => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-              <td><b>${item.name}</b></td>
-              <td><span class="table-badge badge-type">${item.type}</span></td>
-              <td>${item.currency}</td>
-              <td>${item.unit}</td>
-              <td style="font-weight: 600; color: var(--gold-color);">${formatter.format(item.amount)}</td>
-              <td><span class="table-badge badge-bucket">${item.bucket}</span></td>
-            `;
-            DOM.assetTableBody.appendChild(tr);
-          });
         }
       };
 
+      // Responsive Mobile-Friendly Chart Rendering Architecture
+      const renderProjectionCharts = (projectionsData) => {
+        const ctx = document.getElementById('projectionChart');
+        if(!ctx) return;
+
+        if (chartInstance) {
+          chartInstance.destroy();
+        }
+
+        const labels = projectionsData.map(p => p.year);
+        const leftoverAssets = projectionsData.map(p => p.trueLeftoverTotal);
+        const spendingDrag = projectionsData.map(p => p.inflatedSpending);
+
+        chartInstance = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: 'True Post-Spend Assets Leftover',
+                data: leftoverAssets,
+                borderColor: '#8EBA99',
+                backgroundColor: 'rgba(142, 186, 153, 0.05)',
+                borderWidth: 3,
+                tension: 0.2,
+                fill: true,
+                yAxisID: 'y'
+              },
+              {
+                label: 'Inflated Spending Cost Drag',
+                data: spendingDrag,
+                borderColor: '#D2784F',
+                backgroundColor: 'transparent',
+                borderWidth: 2,
+                borderDash: [5, 5],
+                tension: 0.1,
+                yAxisID: 'y'
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false, // Allows container styles heights to override structure
+            plugins: {
+              legend: {
+                position: 'top',
+                labels: { color: '#EDE6D6', font: { family: 'Inter', size: window.innerWidth < 768 ? 10 : 12 } }
+              },
+              tooltip: {
+                mode: 'index',
+                intersect: false
+              }
+            },
+            scales: {
+              x: {
+                grid: { color: 'rgba(237, 230, 214, 0.05)' },
+                ticks: { color: '#A9B8B2', font: { size: window.innerWidth < 768 ? 9 : 11 } }
+              },
+              y: {
+                type: 'linear',
+                display: true,
+                position: 'left',
+                grid: { color: 'rgba(237, 230, 214, 0.08)' },
+                ticks: {
+                  color: '#A9B8B2',
+                  font: { size: window.innerWidth < 768 ? 9 : 11 },
+                  callback: function(value) {
+                    if (value >= 1e6) return '$' + (value / 1e6).toFixed(1) + 'M';
+                    if (value >= 1e3) return '$' + (value / 1e3).toFixed(0) + 'k';
+                    return '$' + value;
+                  }
+                }
+              }
+            }
+          }
+        });
+      };
+
+      // Handle view sizing adjustments on real-time layout rendering orientation switches
+      window.triggerChartResize = () => {
+        if(chartInstance) {
+          chartInstance.resize();
+        }
+      };
+      window.addEventListener('resize', window.triggerChartResize);
+
+      // Async Spreadsheet Sync Fetch Request Block
+      const fetchDataFromMicroservice = async () => {
+        DOM.refreshSheetBtn.disabled = true;
+        DOM.syncStatusLabel.innerText = "⚡ Synchronizing telemetries stack formulas...";
+        DOM.syncStatusLabel.style.color = "var(--gold-color)";
+
+        try {
+          const response = await fetch(GOOGLE_SCRIPT_URL);
+          const res = await response.json();
+
+          if (res.status === "success") {
+            state.netWorth = parseFloat(res.netWorth);
+            state.bucketTotals = res.bucketTotals;
+            state.items = res.items;
+            
+            // Map the parsed JSON payload variables seamlessly
+            state.projections = res.projections.map(row => ({
+              year: row[0],
+              stocks: parseFloat(row[1]) || 0,
+              bonds: parseFloat(row[2]) || 0,
+              cash: parseFloat(row[3]) || 0,
+              grossTotal: parseFloat(row[4]) || 0,
+              trueLeftoverTotal: parseFloat(row[5]) || 0,
+              safeWithdrawal: parseFloat(row[6]) || 0,
+              inflatedSpending: parseFloat(row[7]) || 0,
+              spendingRatio: parseFloat(row[8]) || 0, // Maps to the new data array dimension
+              status: row[9] || 'Unknown'
+            }));
+
+            DOM.syncStatusLabel.innerText = `✅ Telemetry sync complete: ${new Date().toLocaleTimeString()}`;
+            DOM.syncStatusLabel.style.color = "var(--success-green)";
+            saveState();
+          } else {
+            throw new Error(res.message || "Execution exception");
+          }
+        } catch (error) {
+          console.error(error);
+          DOM.syncStatusLabel.innerText = "🚨 Connection failed. Using localized fallback cache.";
+          DOM.syncStatusLabel.style.color = "var(--alert-color)";
+        } finally {
+          DOM.refreshSheetBtn.disabled = false;
+        }
+      };
+
+      DOM.refreshSheetBtn.addEventListener('click', fetchDataFromMicroservice);
+
+      // Initialize System App Boot Sequence Loops
       loadState();
       renderTasks();
-      renderFinancials();
-      
-      // Auto-request fresh balance data telemetry stream on app start
-      fetchLiveFinancialTelemetry();
+      if(state.netWorth > 0) {
+        DOM.syncStatusLabel.innerText = "✓ Loaded local system checkpoint data.";
+        DOM.syncStatusLabel.style.color = "var(--success-green)";
+        renderFinancials();
+      } else {
+        fetchDataFromMicroservice();
+      }
     });
   </script>
 </body>
