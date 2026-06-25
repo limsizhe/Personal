@@ -612,8 +612,10 @@
       <div class="dynamic-finance-grid" id="dynamicGridRow"></div>
 
       <div class="chart-container-panel">
-        <h3 class="table-section-title" style="margin-top: 0; border-bottom: none;">20-Year Horizon: Portfolio Growth vs Inflated Target Budget</h3>
-        <canvas id="projectionChart" style="max-height: 400px; width: 100%;"></canvas>
+        <h3 class="table-section-title" style="margin-top: 0; border-bottom: none;">20-Year Runway: Year-End True Leftover Assets vs Inflated Spending Drag</h3>
+        <div class="relative w-full h-[400px]">
+          <canvas id="projectionChart"></canvas>
+        </div>
       </div>
 
       <h2 class="table-section-title">20-Year Runway Projections Model</h2>
@@ -621,19 +623,20 @@
         <table class="asset-data-table">
           <thead>
             <tr>
-              <th>Year</th>
+              <th>Timeline</th>
               <th>Nominal Stocks</th>
               <th>Nominal Bonds</th>
               <th>Nominal Cash</th>
-              <th>Total Wealth Balance</th>
+              <th>Gross Assets (Pre-Spend)</th>
+              <th>True Leftover (Post-Spend)</th>
               <th>Safe Withdrawal (SWR)</th>
-              <th>Inflated Spending Budget</th>
-              <th>Status Target Safety</th>
+              <th>Inflated Target Spending</th>
+              <th>Status Safety Check</th>
             </tr>
           </thead>
           <tbody id="projectionTableBody">
             <tr>
-              <td colspan="8" style="text-align: center; color: var(--text-muted); font-style: italic; padding: 25px;">No timeline runway telemetry synchronized yet.</td>
+              <td colspan="9" style="text-align: center; color: var(--text-muted); font-style: italic; padding: 25px;">No timeline runway telemetry synchronized yet.</td>
             </tr>
           </tbody>
         </table>
@@ -722,7 +725,7 @@
         projections: []
       };
 
-      let chartInstance = null; // Holds global scope Chart object pointer reference
+      let chartInstance = null; 
 
       const loadState = () => {
         const savedTasks = localStorage.getItem('nexus_tasks');
@@ -939,49 +942,40 @@
         DOM.refreshSheetBtn.addEventListener('click', fetchLiveFinancialTelemetry);
       }
 
-      // NEW: Chart Rendering Module to paint nominal vs real curves
+      // Render Chart Module mapping your True Leftover Capital vs Spending Curves
       const renderProjectionCharts = (projections) => {
         const ctx = document.getElementById('projectionChart').getContext('2d');
         
-        // Prepare data vectors
-        const labels = projections.map(p => `Yr ${p.year}`);
-        const portfolioBalances = projections.map(p => p.totalPortfolio);
+        const timelines = projections.map(p => p.year);
+        const leftoverBalances = projections.map(p => p.trueLeftoverTotal);
         const inflatedSpending = projections.map(p => p.inflatedSpending);
-        const safeWithdrawals = projections.map(p => p.safeWithdrawal);
 
-        if (chartInstance) { chartInstance.destroy(); } // Destruct previous canvas map to clear frame memory
+        if (chartInstance) { chartInstance.destroy(); } 
 
         chartInstance = new Chart(ctx, {
           type: 'line',
           data: {
-            labels: labels,
+            labels: timelines,
             datasets: [
               {
-                label: 'Total Portfolio Capital ($)',
-                data: portfolioBalances,
-                borderColor: '#4FC1E9',
-                backgroundColor: 'rgba(79, 193, 233, 0.05)',
-                yAxisID: 'y',
-                borderWidth: 3,
+                label: 'True Leftover Wealth (Post-Spending Net Assets)',
+                data: leftoverBalances,
+                borderColor: '#10b981', // Solid Emerald Green
+                backgroundColor: 'rgba(16, 185, 129, 0.06)',
+                yAxisID: 'yLeft',
+                borderWidth: 3.5,
                 tension: 0.15,
                 fill: true
               },
               {
-                label: 'Inflated Spending Target ($)',
+                label: 'Inflated Annual Spending Drag',
                 data: inflatedSpending,
-                borderColor: '#D2784F',
+                borderColor: '#D2784F', // Terracotta Red Accent
                 borderDash: [6, 4],
-                yAxisID: 'y1',
-                borderWidth: 2.5,
-                tension: 0.0
-              },
-              {
-                label: 'Safe Annual Withdrawal (SWR) ($)',
-                data: safeWithdrawals,
-                borderColor: '#C99A3B',
-                yAxisID: 'y1',
+                yAxisID: 'yRight',
                 borderWidth: 2,
-                tension: 0.1
+                tension: 0.1,
+                fill: false
               }
             ]
           },
@@ -994,21 +988,21 @@
             },
             scales: {
               x: { grid: { color: 'rgba(237, 230, 214, 0.05)' }, ticks: { color: '#A9B8B2' } },
-              y: {
+              yLeft: {
                 type: 'linear',
                 display: true,
                 position: 'left',
                 grid: { color: 'rgba(237, 230, 214, 0.08)' },
                 ticks: { color: '#4FC1E9', callback: (v) => '$' + v.toLocaleString() },
-                title: { display: true, text: 'Portfolio Wealth Value', color: '#4FC1E9' }
+                title: { display: true, text: 'Surplus Portfolio Capital', color: '#4FC1E9' }
               },
-              y1: {
+              yRight: {
                 type: 'linear',
                 display: true,
                 position: 'right',
                 grid: { drawOnChartArea: false },
-                ticks: { color: '#C99A3B', callback: (v) => '$' + v.toLocaleString() },
-                title: { display: true, text: 'Annual Expenses / SWR Ratios', color: '#C99A3B' }
+                ticks: { color: '#D2784F', callback: (v) => '$' + v.toLocaleString() },
+                title: { display: true, text: 'Annual Budget Outlay Requirement', color: '#D2784F' }
               }
             }
           }
@@ -1021,19 +1015,26 @@
         // 1. Update overall Net Worth hero display
         DOM.networthDisplay.innerText = formatter.format(state.netWorth);
         
-        // 2. Render Allocations Sub-Stat Cards
+        // 2. Render Allocation summary metric panels
         DOM.dynamicGridRow.innerHTML = '';
         for (let bucket in state.bucketTotals) {
+          let colorStyle = "color: #4FC1E9;"; 
+          let normBucket = bucket.toLowerCase();
+          
+          if (normBucket.includes('saving') || normBucket.includes('cash')) colorStyle = "color: #5D9CEC;";
+          if (normBucket.includes('bond') || normBucket.includes('fixed')) colorStyle = "color: #8EBA99;";
+          if (normBucket.includes('liability') || normBucket.includes('debt') || normBucket.includes('loan')) colorStyle = "color: #EC87C0;";
+          
           const card = document.createElement('div');
           card.className = "finance-stat-card";
           card.innerHTML = `
             <label>${bucket}</label>
-            <div class="stat-val">${formatter.format(state.bucketTotals[bucket])}</div>
+            <div class="stat-val" style="${colorStyle}">${formatter.format(state.bucketTotals[bucket])}</div>
           `;
           DOM.dynamicGridRow.appendChild(card);
         }
 
-        // 3. NEW: Render 20-Year Projections Table Matrix
+        // 3. Render 20-Year Projections Table Matrix rows
         DOM.projectionTableBody.innerHTML = '';
         if (state.projections && state.projections.length > 0) {
           state.projections.forEach(p => {
@@ -1044,11 +1045,12 @@
             else if (p.status.includes('DEFICIT')) badgeClass = 'status-risk';
             
             tr.innerHTML = `
-              <td><b>Year ${p.year}</b></td>
+              <td><b>${p.year}</b></td>
               <td>${formatter.format(p.stocks)}</td>
               <td>${formatter.format(p.bonds)}</td>
               <td>${formatter.format(p.cash)}</td>
-              <td style="color: #4FC1E9; font-weight: 600;">${formatter.format(p.totalPortfolio)}</td>
+              <td>${formatter.format(p.grossTotal)}</td>
+              <td style="color: #10b981; font-weight: 600;">${formatter.format(p.trueLeftoverTotal)}</td>
               <td>${formatter.format(p.safeWithdrawal)}</td>
               <td style="color: #D2784F;">${formatter.format(p.inflatedSpending)}</td>
               <td><span class="status-pill ${badgeClass}">${p.status}</span></td>
@@ -1056,10 +1058,10 @@
             DOM.projectionTableBody.appendChild(tr);
           });
           
-          // Render chart canvas context frame
+          // Trigger the canvas charts graphics drawing hook
           renderProjectionCharts(state.projections);
         } else {
-          DOM.projectionTableBody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-muted); font-style: italic; padding: 25px;">No timeline runway telemetry synchronized yet.</td></tr>`;
+          DOM.projectionTableBody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: var(--text-muted); font-style: italic; padding: 25px;">No timeline runway telemetry synchronized yet.</td></tr>`;
         }
         
         // 4. Render Base Inventory Rows
@@ -1082,10 +1084,12 @@
         }
       };
 
-      // Initialization Hook Entry Lifecycle Execution
       loadState();
       renderTasks();
       renderFinancials();
+      
+      // Auto-request fresh balance data telemetry stream on app start
+      fetchLiveFinancialTelemetry();
     });
   </script>
 </body>
