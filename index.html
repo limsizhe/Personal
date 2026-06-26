@@ -320,8 +320,8 @@
       justify-content: center;
       align-items: center;
       gap: 12px;
-      flex-wrap: wrap;
       margin-top: 8px;
+      flex-wrap: wrap;
     }
     .subtitle {
       font-family: 'Playfair Display', serif;
@@ -508,7 +508,7 @@
     .card.cat-health { border-left-color: var(--cat-health-color); }
     .card.cat-fun { border-left-color: var(--cat-fun-color); }
     .empty-note { font-size: 0.85rem; color: var(--text-muted); text-align: center; padding: 40px 0; font-style: italic; pointer-events: none; }
-    .mobile-action-select-wrapper { display: none; margin-top: 10px; }
+    .mobile-action-select-wrapper { display: block; margin-top: 10px; }
     .mobile-move-select { width: 100%; background-color: var(--panel-bg); color: var(--text-main); padding: 6px; border: 1px solid var(--border-color); border-radius: 4px; }
 
     /* Modals Overlays Structural Layering */
@@ -549,11 +549,7 @@
       .mobile-action-select-wrapper { display: block; }
       .app-view { padding: 20px 14px; }
       .networth-amount { font-size: 2.5rem; }
-      
-      /* Make charts taller and occupy more screen depth on smartphones */
-      .chart-relative-wrapper {
-        height: 420px;
-      }
+      .chart-relative-wrapper { height: 420px; }
     }
   </style>
 </head>
@@ -760,7 +756,6 @@
   </div>
 
   <script>
-    // Global Navigation View Controller Engine
     window.switchView = function(viewId) {
       document.querySelectorAll('.app-view').forEach(view => {
         view.classList.remove('active-view');
@@ -768,14 +763,12 @@
       const targetedView = document.getElementById(viewId);
       if(targetedView) targetedView.classList.add('active-view');
       
-      // Force Chart resizing calculation loops when user loads the Finance Panel View
       if(viewId === 'finance-view' && window.triggerChartResize) {
         window.triggerChartResize();
       }
       window.scrollTo(0, 0);
     };
 
-    // Generic Toggle Selector Engine for Expandable Table Component Architectures
     window.toggleContainer = function(containerId, indicatorId) {
       const el = document.getElementById(containerId);
       const ind = document.getElementById(indicatorId);
@@ -789,6 +782,7 @@
     };
 
     document.addEventListener('DOMContentLoaded', () => {
+      // Configured exact Macro Execution Web App Endpoint URL link 
       const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbykmdGppgmmMZF9vp4jNfHCyoGUHBsbsO44hfx9aG6jVfYtzGU-JbmYF5IbwYobWujg/exec";
 
       let state = {
@@ -835,7 +829,6 @@
         columns: document.querySelectorAll('.column'),
         cardLists: document.querySelectorAll('.card-list'),
         mobileNavBtns: document.querySelectorAll('.mobile-nav-btn'),
-        
         refreshSheetBtn: document.getElementById('refreshSheetBtn'),
         networthDisplay: document.getElementById('networthDisplay'),
         syncStatusLabel: document.getElementById('syncStatusLabel'),
@@ -875,14 +868,6 @@
         saveState();
       };
 
-      window.moveTaskColumn = (taskId, targetColumn) => {
-        const task = state.tasks.find(t => t.id === taskId);
-        if (task) {
-          task.column = targetColumn;
-          saveState();
-        }
-      };
-
       DOM.mobileNavBtns.forEach(btn => {
         btn.addEventListener('click', () => {
           DOM.mobileNavBtns.forEach(b => b.classList.remove('active'));
@@ -894,9 +879,10 @@
         });
       });
 
+      // --- Drag and Drop Kanban Implementation Core Loops ---
       let draggedCardId = null;
       
-      const initDragEvents = (card) => {
+      window.initDragEvents = (card) => {
         card.addEventListener('dragstart', (e) => {
           draggedCardId = card.getAttribute('data-id');
           card.classList.add('dragging');
@@ -923,270 +909,258 @@
 
         column.addEventListener('drop', (e) => {
           e.preventDefault();
-          column.classList.remove('drag-over');
           const id = e.dataTransfer.getData('text/plain') || draggedCardId;
-          if (id) {
-            const list = column.querySelector('.card-list');
-            moveTaskColumn(id, list.getAttribute('data-column'));
+          const targetColumn = column.getAttribute('id');
+          
+          if(id) {
+            const task = state.tasks.find(t => t.id === id);
+            if(task && task.column !== targetColumn) {
+              task.column = targetColumn;
+              saveState();
+            }
           }
+          column.classList.remove('drag-over');
         });
       });
 
+      window.handleMobileMove = (taskId, targetColumn) => {
+        const task = state.tasks.find(t => t.id === taskId);
+        if (task && targetColumn) {
+          task.column = targetColumn;
+          saveState();
+        }
+      };
+
       const renderTasks = () => {
-        DOM.cardLists.forEach(l => l.innerHTML = '');
-        const counters = { future: 0, 'this-week': 0, today: 0, completed: 0 };
+        const counts = { 'future': 0, 'this-week': 0, 'today': 0, 'completed': 0 };
+        DOM.cardLists.forEach(list => list.innerHTML = '');
 
         state.tasks.forEach(task => {
-          if (!counters.hasOwnProperty(task.column)) task.column = 'future';
-          counters[task.column]++;
-          
+          counts[task.column]++;
+          const listContainer = document.querySelector(`.card-list[data-column="${task.column}"]`);
+          if (!listContainer) return;
+
           const li = document.createElement('li');
           li.className = `card ${task.category}`;
           li.setAttribute('draggable', 'true');
           li.setAttribute('data-id', task.id);
-          
-          let pText = task.priority === '3' ? 'High' : task.priority === '2' ? 'Medium' : 'Low';
+
+          const displayDate = task.date ? `<div class="card-date">📅 ${task.date}</div>` : '';
           
           li.innerHTML = `
             <div class="card-header-row">
-              <span class="card-text">${task.title}</span>
-              <button class="card-delete" onclick="event.stopPropagation(); deleteTask('${task.id}')">&#10005;</button>
+              <div class="card-text">${task.title}</div>
+              <button class="card-delete" onclick="deleteTask('${task.id}')">✕</button>
             </div>
-            ${task.date ? `<div class="card-date">📅 ${task.date}</div>` : ''}
-            <div class="card-meta"><span class="badge priority-${task.priority}">${pText}</span></div>
-            <div class="mobile-action-select-wrapper" onclick="event.stopPropagation();">
-              <select class="mobile-move-select" onchange="moveTaskColumn('${task.id}', this.value)">
-                <option value="future" ${task.column==='future'?'selected':''}>Future</option>
-                <option value="this-week" ${task.column==='this-week'?'selected':''}>This Week</option>
-                <option value="today" ${task.column==='today'?'selected':''}>Today</option>
-                <option value="completed" ${task.column==='completed'?'selected':''}>Done</option>
+            ${displayDate}
+            <div class="card-meta">
+              <span class="badge priority-${task.priority}">P${task.priority}</span>
+            </div>
+            <div class="mobile-action-select-wrapper">
+              <select class="mobile-move-select" onchange="handleMobileMove('${task.id}', this.value)">
+                <option value="" disabled selected>Move card to...</option>
+                <option value="future" ${task.column === 'future' ? 'disabled' : ''}>Future</option>
+                <option value="this-week" ${task.column === 'this-week' ? 'disabled' : ''}>This Week</option>
+                <option value="today" ${task.column === 'today' ? 'disabled' : ''}>Today</option>
+                <option value="completed" ${task.column === 'completed' ? 'disabled' : ''}>Completed</option>
               </select>
             </div>
           `;
-          
+
+          listContainer.appendChild(li);
           initDragEvents(li);
-          const listTarget = Array.from(DOM.cardLists).find(ul => ul.getAttribute('data-column') === task.column);
-          if (listTarget) listTarget.appendChild(li);
         });
 
-        // Set layout totals values on buttons and columns headers counters
-        Object.keys(counters).forEach(key => {
-          const countEl = document.getElementById(`count-${key}`);
-          const navCountEl = document.getElementById(`nav-count-${key}`);
-          if(countEl) countEl.innerText = counters[key];
-          if(navCountEl) navCountEl.innerText = counters[key];
-        });
+        for (let col in counts) {
+          const cEl = document.getElementById(`count-${col}`);
+          const navEl = document.getElementById(`nav-count-${col}`);
+          if(cEl) cEl.innerText = counts[col];
+          if(navEl) navEl.innerText = counts[col];
+        }
+      };
+
+      // --- Financial Syncing and Charting Framework Engine ---
+      const fetchLiveFinancialTelemetry = async () => {
+        if(DOM.refreshSheetBtn) DOM.refreshSheetBtn.disabled = true;
+        if(DOM.syncStatusLabel) DOM.syncStatusLabel.innerHTML = "⚡ Requesting core records pipeline data from microservice...";
+        
+        try {
+          const response = await fetch(GOOGLE_SCRIPT_URL);
+          if (!response.ok) throw new Error("Network pipe failure");
+          
+          const jsonPayload = await response.json();
+          
+          if (jsonPayload.error) {
+            throw new Error(jsonPayload.error);
+          }
+
+          // Strict checking strategy for both camelCase and all lowercase object keys
+          state.netWorth = typeof jsonPayload.networth !== 'undefined' ? jsonPayload.networth : (jsonPayload.netWorth || 0);
+          state.bucketTotals = jsonPayload.bucketTotals || {};
+          state.items = jsonPayload.items || [];
+          state.projections = jsonPayload.projections || [];
+
+          if(DOM.syncStatusLabel) DOM.syncStatusLabel.innerHTML = `✅ Direct Sync Complete.`;
+          saveState();
+        } catch (err) {
+          console.error("Endpoint Fetch Failure: ", err);
+          if(DOM.syncStatusLabel) DOM.syncStatusLabel.innerHTML = `🚨 Connection failed. Using localized fallback cache.`;
+          loadState();
+          renderTasks();
+          renderFinancials();
+        } finally {
+          if(DOM.refreshSheetBtn) DOM.refreshSheetBtn.disabled = false;
+        }
       };
 
       const renderFinancials = () => {
-        if (!state.netWorth) return;
+        if(DOM.networthDisplay) DOM.networthDisplay.innerText = formatter.format(state.netWorth);
 
-        DOM.networthDisplay.innerText = formatter.format(state.netWorth);
-        DOM.dynamicGridRow.innerHTML = '';
-        
-        // Loop and render Category Asset cards elements row
-        Object.keys(state.bucketTotals).forEach(bucket => {
-          const val = state.bucketTotals[bucket];
-          const div = document.createElement('div');
-          div.className = 'finance-stat-card';
-          div.innerHTML = `<label>${bucket}</label><div class="stat-val">${formatter.format(val)}</div>`;
-          DOM.dynamicGridRow.appendChild(div);
-        });
-
-        // Render Inventory Table Array Rows
-        DOM.assetTableBody.innerHTML = '';
-        if (state.items && state.items.length > 0) {
-          state.items.forEach(item => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-              <td><b>${item.asset}</b></td>
-              <td><span class="table-badge badge-type">${item.type}</span></td>
-              <td>${item.currency || 'USD'}</td>
-              <td>${item.units ? parseFloat(item.units).toLocaleString(undefined, {minimumFractionDigits: 2}) : '-'}</td>
-              <td style="font-weight:600;">${formatter.format(item.amount)}</td>
-              <td><span class="table-badge badge-get badge-bucket">${item.bucket}</span></td>
+        // Render dynamic grid metric rows
+        if (DOM.dynamicGridRow) {
+          DOM.dynamicGridRow.innerHTML = '';
+          for (let bucketName in state.bucketTotals) {
+            const card = document.createElement('div');
+            card.className = "finance-stat-card";
+            card.innerHTML = `
+              <label>${bucketName}</label>
+              <div class="stat-val">${formatter.format(state.bucketTotals[bucketName])}</div>
             `;
-            DOM.assetTableBody.appendChild(tr);
-          });
+            DOM.dynamicGridRow.appendChild(card);
+          }
         }
 
-        // Render Projections Runway Table Array Rows with the updated Spending % metric
-        DOM.projectionTableBody.innerHTML = '';
-        if (state.projections && state.projections.length > 0) {
-          state.projections.forEach(p => {
-            const tr = document.createElement('tr');
-            
-            let badgeClass = 'status-secure';
-            if (p.status.includes('CRITICAL')) badgeClass = 'status-critical';
-            else if (p.status.includes('DEFICIT')) badgeClass = 'status-risk';
-            
-            // Handle percentage extraction (supports matching updated Gas engine schemas)
-            const spendingRatioPercent = p.spendingRatio ? (p.spendingRatio * 100).toFixed(2) : ((p.inflatedSpending / p.grossTotal) * 100).toFixed(2);
-            
-            let spendingRatioColor = 'color: var(--text-main);';
-            if (parseFloat(spendingRatioPercent) >= 4.00) spendingRatioColor = 'color: #D2784F; font-weight: 600;';
-            if (p.grossTotal <= 0) spendingRatioColor = 'color: var(--alert-color);';
-
-            tr.innerHTML = `
-              <td><b>${p.year}</b></td>
-              <td>${formatter.format(p.stocks)}</td>
-              <td>${formatter.format(p.bonds)}</td>
-              <td>${formatter.format(p.cash)}</td>
-              <td>${formatter.format(p.grossTotal)}</td>
-              <td style="color: #8EBA99; font-weight: 600;">${formatter.format(p.trueLeftoverTotal)}</td>
-              <td>${formatter.format(p.safeWithdrawal)}</td>
-              <td style="color: #D2784F;">${formatter.format(p.inflatedSpending)}</td>
-              <td style="${spendingRatioColor}">${p.grossTotal > 0 ? spendingRatioPercent + '%' : '-'}</td>
-              <td><span class="status-pill ${badgeClass}">${p.status}</span></td>
-            `;
-            DOM.projectionTableBody.appendChild(tr);
-          });
-          
-          renderProjectionCharts(state.projections);
+        // Render individual assets lines matrix inventory table
+        if (DOM.assetTableBody) {
+          if(state.items.length === 0) {
+            DOM.assetTableBody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); font-style: italic; padding: 30px;">No records synced yet.</td></tr>`;
+          } else {
+            DOM.assetTableBody.innerHTML = state.items.map(item => `
+              <tr>
+                <td style="font-weight:600; color:var(--text-main);">${item.name}</td>
+                <td><span class="table-badge badge-type">${item.type}</span></td>
+                <td style="color:var(--text-muted);">${item.currency}</td>
+                <td>${item.unit}</td>
+                <td style="font-weight:600; color:var(--gold-color);">${formatter.format(item.amount)}</td>
+                <td><span class="table-badge badge-bucket">${item.bucket}</span></td>
+              </tr>
+            `).join('');
+          }
         }
+
+        // Render long-range runtime projection tabular row arrays
+        if (DOM.projectionTableBody) {
+          if(state.projections.length === 0) {
+            DOM.projectionTableBody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: var(--text-muted); font-style: italic; padding: 25px;">No timeline runway telemetry synchronized yet.</td></tr>`;
+          } else {
+            DOM.projectionTableBody.innerHTML = state.projections.map(p => {
+              let badgeStyleClass = "status-secure";
+              if (p.status.includes("RISK")) badgeStyleClass = "status-risk";
+              if (p.status.includes("CRITICAL")) badgeStyleClass = "status-critical";
+
+              return `
+                <tr>
+                  <td style="font-weight:600; text-align:center;">${p.year}</td>
+                  <td>${formatter.format(p.stocks)}</td>
+                  <td>${formatter.format(p.bonds)}</td>
+                  <td>${formatter.format(p.cash)}</td>
+                  <td style="color:var(--text-muted);">${formatter.format(p.grossTotal)}</td>
+                  <td style="font-weight:600; color:var(--success-green);">${formatter.format(p.trueLeftoverTotal)}</td>
+                  <td>${formatter.format(p.safeWithdrawal)}</td>
+                  <td style="color:var(--alert-color);">${formatter.format(p.inflatedSpending)}</td>
+                  <td style="text-align:center; font-weight:500;">${(p.spendingPercentage * 100).toFixed(2)}%</td>
+                  <td><span class="status-pill ${badgeStyleClass}">${p.status}</span></td>
+                </tr>
+              `;
+            }).join('');
+          }
+        }
+
+        generateVisualChartsCanvas();
       };
 
-      // Responsive Mobile-Friendly Chart Rendering Architecture
-      const renderProjectionCharts = (projectionsData) => {
-        const ctx = document.getElementById('projectionChart');
-        if(!ctx) return;
+      const generateVisualChartsCanvas = () => {
+        const canvasCtx = document.getElementById('projectionChart');
+        if (!canvasCtx || state.projections.length === 0) return;
 
         if (chartInstance) {
           chartInstance.destroy();
         }
 
-        const labels = projectionsData.map(p => p.year);
-        const leftoverAssets = projectionsData.map(p => p.trueLeftoverTotal);
-        const spendingDrag = projectionsData.map(p => p.inflatedSpending);
+        const labels = state.projections.map(p => p.year);
+        const netAssetsTimeline = state.projections.map(p => p.trueLeftoverTotal);
+        const inflationDragTimeline = state.projections.map(p => p.inflatedSpending);
 
-        chartInstance = new Chart(ctx, {
+        chartInstance = new Chart(canvasCtx.getContext('2d'), {
           type: 'line',
           data: {
             labels: labels,
             datasets: [
               {
-                label: 'True Post-Spend Assets Leftover',
-                data: leftoverAssets,
+                label: 'True Leftover Wealth (Post-Spend Portfolio)',
+                data: netAssetsTimeline,
                 borderColor: '#8EBA99',
                 backgroundColor: 'rgba(142, 186, 153, 0.05)',
                 borderWidth: 3,
-                tension: 0.2,
+                tension: 0.15,
                 fill: true,
                 yAxisID: 'y'
               },
               {
-                label: 'Inflated Spending Cost Drag',
-                data: spendingDrag,
+                label: 'Annual Inflated Budget target Drag',
+                data: inflationDragTimeline,
                 borderColor: '#D2784F',
                 backgroundColor: 'transparent',
                 borderWidth: 2,
-                borderDash: [5, 5],
+                borderDash: [6, 4],
                 tension: 0.1,
-                yAxisID: 'y'
+                yAxisID: 'ySpending'
               }
             ]
           },
           options: {
             responsive: true,
-            maintainAspectRatio: false, // Allows container styles heights to override structure
+            maintainAspectRatio: false,
             plugins: {
-              legend: {
-                position: 'top',
-                labels: { color: '#EDE6D6', font: { family: 'Inter', size: window.innerWidth < 768 ? 10 : 12 } }
-              },
-              tooltip: {
-                mode: 'index',
-                intersect: false
-              }
+              legend: { labels: { color: '#EDE6D6', font: { family: 'Inter', size: 12 } } }
             },
             scales: {
-              x: {
-                grid: { color: 'rgba(237, 230, 214, 0.05)' },
-                ticks: { color: '#A9B8B2', font: { size: window.innerWidth < 768 ? 9 : 11 } }
-              },
+              x: { grid: { color: 'rgba(237, 230, 214, 0.05)' }, ticks: { color: '#A9B8B2' } },
               y: {
                 type: 'linear',
                 display: true,
                 position: 'left',
                 grid: { color: 'rgba(237, 230, 214, 0.08)' },
-                ticks: {
-                  color: '#A9B8B2',
-                  font: { size: window.innerWidth < 768 ? 9 : 11 },
-                  callback: function(value) {
-                    if (value >= 1e6) return '$' + (value / 1e6).toFixed(1) + 'M';
-                    if (value >= 1e3) return '$' + (value / 1e3).toFixed(0) + 'k';
-                    return '$' + value;
-                  }
-                }
+                ticks: { color: '#8EBA99', callback: value => '$' + (value / 1000000).toFixed(1) + 'M' }
+              },
+              ySpending: {
+                type: 'linear',
+                display: true,
+                position: 'right',
+                grid: { drawOnChartArea: false },
+                ticks: { color: '#D2784F', callback: value => '$' + (value / 1000).toFixed(0) + 'k' }
               }
             }
           }
         });
       };
 
-      // Handle view sizing adjustments on real-time layout rendering orientation switches
       window.triggerChartResize = () => {
         if(chartInstance) {
-          chartInstance.resize();
-        }
-      };
-      window.addEventListener('resize', window.triggerChartResize);
-
-      // Async Spreadsheet Sync Fetch Request Block
-      const fetchDataFromMicroservice = async () => {
-        DOM.refreshSheetBtn.disabled = true;
-        DOM.syncStatusLabel.innerText = "⚡ Synchronizing telemetries stack formulas...";
-        DOM.syncStatusLabel.style.color = "var(--gold-color)";
-
-        try {
-          const response = await fetch(GOOGLE_SCRIPT_URL);
-          const res = await response.json();
-
-          if (res.status === "success") {
-            state.netWorth = parseFloat(res.netWorth);
-            state.bucketTotals = res.bucketTotals;
-            state.items = res.items;
-            
-            // Map the parsed JSON payload variables seamlessly
-            state.projections = res.projections.map(row => ({
-              year: row[0],
-              stocks: parseFloat(row[1]) || 0,
-              bonds: parseFloat(row[2]) || 0,
-              cash: parseFloat(row[3]) || 0,
-              grossTotal: parseFloat(row[4]) || 0,
-              trueLeftoverTotal: parseFloat(row[5]) || 0,
-              safeWithdrawal: parseFloat(row[6]) || 0,
-              inflatedSpending: parseFloat(row[7]) || 0,
-              spendingRatio: parseFloat(row[8]) || 0, // Maps to the new data array dimension
-              status: row[9] || 'Unknown'
-            }));
-
-            DOM.syncStatusLabel.innerText = `✅ Telemetry sync complete: ${new Date().toLocaleTimeString()}`;
-            DOM.syncStatusLabel.style.color = "var(--success-green)";
-            saveState();
-          } else {
-            throw new Error(res.message || "Execution exception");
-          }
-        } catch (error) {
-          console.error(error);
-          DOM.syncStatusLabel.innerText = "🚨 Connection failed. Using localized fallback cache.";
-          DOM.syncStatusLabel.style.color = "var(--alert-color)";
-        } finally {
-          DOM.refreshSheetBtn.disabled = false;
+          setTimeout(() => { chartInstance.resize(); }, 50);
         }
       };
 
-      DOM.refreshSheetBtn.addEventListener('click', fetchDataFromMicroservice);
+      if(DOM.refreshSheetBtn) DOM.refreshSheetBtn.addEventListener('click', fetchLiveFinancialTelemetry);
 
-      // Initialize System App Boot Sequence Loops
+      // Startup Orchestrator Sequence
       loadState();
       renderTasks();
-      if(state.netWorth > 0) {
-        DOM.syncStatusLabel.innerText = "✓ Loaded local system checkpoint data.";
-        DOM.syncStatusLabel.style.color = "var(--success-green)";
+      if (state.projections.length > 0 || state.items.length > 0) {
         renderFinancials();
+        if(DOM.syncStatusLabel) DOM.syncStatusLabel.innerHTML = "✅ Local Cache Recovered.";
       } else {
-        fetchDataFromMicroservice();
+        fetchLiveFinancialTelemetry();
       }
     });
   </script>
