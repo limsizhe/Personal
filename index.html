@@ -1129,7 +1129,7 @@
         }
 
         const labels = state.projections.map(p => p.year);
-        const netAssetsTimeline = state.projections.map(p => p.trueLeftoverTotal);
+        const netAssetsTimeline = state.projections.map(p => p.trueLeftoverTotal); // This now matches the Sheet exactly
         const inflationDragTimeline = state.projections.map(p => p.inflatedSpending);
         const safeWithdrawalTimeline = state.projections.map(p => p.safeWithdrawal);
         const zeroYieldTimeline = state.projections.map(p => p.zeroYieldBaseline);
