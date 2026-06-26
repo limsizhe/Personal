@@ -849,7 +849,8 @@
         localStorage.setItem('nexus_items_breakdown', JSON.stringify(state.items));
         localStorage.setItem('nexus_projection_horizon', state.projectionHorizonYears.toString());
         
-        // Regenerate and update dynamic telemetry maps locally
+        // Only regenerate projections locally (task/horizon changes) — 
+        // when synced from API, projections are set directly in syncWithGoogleSheets
         computeAgeProjections();
         
         renderTasks();
@@ -970,29 +971,34 @@
       };
 
       // --- Mathematical Multi-Year Runtime Forecasting Engine ---
+      // NOTE: Rates mirror the Google Apps Script exactly so offline fallback matches the sheet.
+      //       GAS: stocks ×1.060 / bonds ×1.025 / cash ×1.010 / spending ×1.035 / SWR from B4
       const computeAgeProjections = () => {
         const startAge = 30;
         const totalSteps = state.projectionHorizonYears;
         
-        // Extrapolate structural balance distributions safely from bucket metrics
-        let initialStocks = state.bucketTotals['Stocks'] || (state.netWorth * 0.75);
-        let initialBonds = state.bucketTotals['Bonds'] || (state.netWorth * 0.15);
-        let initialCash = state.bucketTotals['Cash'] || (state.netWorth * 0.10);
+        // Map bucket names from GAS (Investment / Bond / Savings / Cash)
+        let initialStocks = state.bucketTotals['Investment'] || state.bucketTotals['Stocks'] || (state.netWorth * 0.75);
+        let initialBonds  = state.bucketTotals['Bond']       || state.bucketTotals['Bonds']  || (state.netWorth * 0.02);
+        let initialCash   = (state.bucketTotals['Savings']   || 0)
+                          + (state.bucketTotals['Cash']      || 0)
+                          || (state.netWorth * 0.12);
         
-        // Market Compound Assumptions matching internal sheet architecture
-        const stockGrowthRate = 0.075; 
-        const bondYieldRate = 0.04;
-        const cashYieldRate = 0.025;
-        const inflationDragRate = 0.03;
+        // ── Match GAS compound rates exactly ──────────────────────────────
+        const stockGrowthRate  = 0.060;   // GAS: currentStocks  *= 1.060
+        const bondYieldRate    = 0.025;   // GAS: currentBonds   *= 1.025
+        const cashYieldRate    = 0.010;   // GAS: currentCash    *= 1.010
+        const inflationDragRate = 0.035;  // GAS: dynamicTargetSpending *= 1.035
+        const swrRate          = 0.03;    // GAS B4 default (safe withdrawal rate)
         
-        // Standard baseline spending assumption
-        let baseAnnualSpending = 50000; 
-        const swrRate = 0.04;
+        // GAS reads baselineSpending from dashboardSheet B2 — use 48000 as fallback
+        let baseAnnualSpending = 48000;
 
         let currentStocks = initialStocks;
-        let currentBonds = initialBonds;
-        let currentCash = initialCash;
+        let currentBonds  = initialBonds;
+        let currentCash   = initialCash;
         let zeroYieldAccumulator = initialStocks + initialBonds + initialCash;
+        let dynamicTargetSpending = baseAnnualSpending;
 
         state.projections = [];
 
@@ -1001,44 +1007,38 @@
           let ageLabel = i === 0 ? `Age ${currentAge} (Now)` : `Age ${currentAge}`;
           
           let grossTotal = currentStocks + currentBonds + currentCash;
-          let safeWithdrawal = grossTotal * swrRate;
-          let inflatedSpending = baseAnnualSpending * Math.pow(1 + inflationDragRate, i);
           
-          // Zero Yield Base Decay path tracking raw inflation metrics without investment growth returns
-          let currentZeroYieldBaseline = zeroYieldAccumulator;
-          
-          // Spending Ratio Safety Analysis
+          // GAS: leftoverTotal = Math.max(0, grossTotal - (age===startAge ? 0 : dynamicTargetSpending))
+          let trueLeftoverTotal = Math.max(0, grossTotal - (i === 0 ? 0 : dynamicTargetSpending));
+          let safeWithdrawal    = trueLeftoverTotal * swrRate;
+          let inflatedSpending  = dynamicTargetSpending;
           let spendingPercentage = grossTotal > 0 ? (inflatedSpending / grossTotal) : 0;
-          let trueLeftoverTotal = grossTotal - inflatedSpending;
-          if (trueLeftoverTotal < 0) trueLeftoverTotal = 0;
+          let currentZeroYieldBaseline = Math.max(0, zeroYieldAccumulator);
 
           let status = "SECURE RUNWAY";
-          if (inflatedSpending > safeWithdrawal) status = "SWR OVERFLOW";
-          if (spendingPercentage > 0.08) status = "CAPITAL DECAY RISK";
-          if (trueLeftoverTotal <= 0) status = "OUT OF WEALTH";
+          if (safeWithdrawal < inflatedSpending) status = "SWR OVERFLOW";
+          if (trueLeftoverTotal <= 0)            status = "OUT OF WEALTH";
 
           state.projections.push({
-            year: ageLabel,
-            stocks: Math.round(currentStocks),
-            bonds: Math.round(currentBonds),
-            cash: Math.round(currentCash),
-            grossTotal: Math.round(grossTotal),
-            trueLeftoverTotal: Math.round(trueLeftoverTotal),
-            zeroYieldBaseline: Math.round(currentZeroYieldBaseline),
-            safeWithdrawal: Math.round(safeWithdrawal),
-            inflatedSpending: Math.round(inflatedSpending),
+            year:               ageLabel,
+            stocks:             Math.round(currentStocks),
+            bonds:              Math.round(currentBonds),
+            cash:               Math.round(currentCash),
+            grossTotal:         Math.round(grossTotal),
+            trueLeftoverTotal:  Math.round(trueLeftoverTotal),
+            zeroYieldBaseline:  Math.round(currentZeroYieldBaseline),
+            safeWithdrawal:     Math.round(safeWithdrawal),
+            inflatedSpending:   Math.round(inflatedSpending),
             spendingPercentage: spendingPercentage,
-            status: status
+            status:             status
           });
 
-          // Compound balances onto subsequent year sequence blocks
-          currentStocks = currentStocks * (1 + stockGrowthRate);
-          currentBonds = currentBonds * (1 + bondYieldRate);
-          currentCash = currentCash * (1 + cashYieldRate);
-          
-          // Decay the baseline tracking model purely by spending depletion
-          zeroYieldAccumulator = zeroYieldAccumulator - inflatedSpending;
-          if (zeroYieldAccumulator < 0) zeroYieldAccumulator = 0;
+          // Compound exactly as GAS does — AFTER recording the row
+          currentStocks           *= 1.060;
+          currentBonds            *= 1.025;
+          currentCash             *= 1.010;
+          dynamicTargetSpending   *= 1.035;
+          zeroYieldAccumulator     = Math.max(0, zeroYieldAccumulator - inflatedSpending);
         }
       };
 
@@ -1046,6 +1046,7 @@
       if(DOM.horizonSelect) {
         DOM.horizonSelect.addEventListener('change', (e) => {
           state.projectionHorizonYears = parseInt(e.target.value);
+          localStorage.setItem('nexus_projection_horizon', state.projectionHorizonYears.toString());
           
           // Direct titles adjustments dynamically matching tracking horizons
           if(DOM.chartTitleText) {
@@ -1055,7 +1056,8 @@
             DOM.tableTitleText.innerText = `Age ${state.projectionHorizonYears}-Year Runway Projections Model`;
           }
           
-          saveState();
+          // Re-trigger a fresh sync to get the full projection set sliced to the new horizon
+          syncWithGoogleSheets();
         });
       }
 
@@ -1129,7 +1131,7 @@
         }
 
         const labels = state.projections.map(p => p.year);
-        const netAssetsTimeline = state.projections.map(p => p.trueLeftoverTotal); // This now matches the Sheet exactly
+        const netAssetsTimeline = state.projections.map(p => p.trueLeftoverTotal);
         const inflationDragTimeline = state.projections.map(p => p.inflatedSpending);
         const safeWithdrawalTimeline = state.projections.map(p => p.safeWithdrawal);
         const zeroYieldTimeline = state.projections.map(p => p.zeroYieldBaseline);
@@ -1298,8 +1300,8 @@
               const tr = document.createElement('tr');
               
               let statusClass = 'status-secure';
-              if (p.status.includes('RISK') || p.status.includes('OVERFLOW')) statusClass = 'status-risk';
-              if (p.status.includes('OUT')) statusClass = 'status-critical';
+              if (p.status.includes('RISK') || p.status.includes('OVERFLOW') || p.status.includes('DEFICIT')) statusClass = 'status-risk';
+              if (p.status.includes('OUT') || p.status.includes('CRITICAL')) statusClass = 'status-critical';
 
               tr.innerHTML = `
                 <td style="font-weight: 700; text-align: center; color: var(--gold-color);">${p.year}</td>
@@ -1337,9 +1339,59 @@
             state.netWorth = data.networth || 0;
             state.bucketTotals = data.bucketTotals || { Stocks: 0, Bonds: 0, Cash: 0 };
             state.items = data.items || [];
-            
-            saveState();
-            
+
+            // ── KEY FIX: Use projections returned directly from GAS so True Leftover Wealth
+            //    matches the sheet exactly. The API already calculates these with the same
+            //    compound rates (6% stocks / 2.5% bonds / 1% cash / 3.5% inflation / SWR).
+            //    We only need to inject the zeroYieldBaseline locally (pure spend-down path).
+            if (data.projections && data.projections.length > 0) {
+              // Build the zero-yield decay baseline locally (no investment growth, just spending drain)
+              let zeroYield = (state.bucketTotals['Investment'] || 0)
+                            + (state.bucketTotals['Bond']      || 0)
+                            + (state.bucketTotals['Savings']   || 0)
+                            + (state.bucketTotals['Cash']      || 0);
+              // Fallback: use netWorth if bucket names don't sum correctly
+              if (zeroYield === 0) zeroYield = state.netWorth;
+
+              state.projections = data.projections
+                .slice(0, state.projectionHorizonYears + 1)
+                .map((p, i) => {
+                  const baseline = Math.max(0, zeroYield);
+                  zeroYield = Math.max(0, zeroYield - p.inflatedSpending);
+
+                  // Map status string from GAS emoji format → local label format
+                  let status = "SECURE RUNWAY";
+                  if (p.status && p.status.includes("DEFICIT")) status = "SWR OVERFLOW";
+                  if (p.status && p.status.includes("CRITICAL")) status = "OUT OF WEALTH";
+
+                  return {
+                    year:               p.year,
+                    stocks:             p.stocks,
+                    bonds:              p.bonds,
+                    cash:               p.cash,
+                    grossTotal:         p.grossTotal,
+                    trueLeftoverTotal:  p.trueLeftoverTotal,   // ← exact sheet value
+                    safeWithdrawal:     p.safeWithdrawal,
+                    inflatedSpending:   p.inflatedSpending,
+                    spendingPercentage: p.spendingPercentage,
+                    zeroYieldBaseline:  Math.round(baseline),
+                    status:             status
+                  };
+                });
+            } else {
+              // No projections from API — fall back to local calculation
+              computeAgeProjections();
+            }
+
+            // Persist asset data (not projections — they regenerate on each sync/horizon change)
+            localStorage.setItem('nexus_net_worth', state.netWorth.toString());
+            localStorage.setItem('nexus_bucket_totals', JSON.stringify(state.bucketTotals));
+            localStorage.setItem('nexus_items_breakdown', JSON.stringify(state.items));
+            localStorage.setItem('nexus_tasks', JSON.stringify(state.tasks));
+            localStorage.setItem('nexus_projection_horizon', state.projectionHorizonYears.toString());
+
+            renderFinancials();
+
             if(DOM.syncStatusLabel) {
               const now = new Date();
               DOM.syncStatusLabel.innerText = `✅ Synchronized: Today at ${now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
@@ -1362,16 +1414,12 @@
 
       // Bootstrap Initialize Runtime State
       loadState();
-      if(state.projections.length === 0) {
-        computeAgeProjections();
-      }
+      computeAgeProjections(); // Show local estimates immediately while API loads
       renderTasks();
       renderFinancials();
       
-      // Auto-refresh via endpoint on initial page load if local cache is completely fresh/empty
-      if(state.items.length === 0) {
-        syncWithGoogleSheets();
-      }
+      // Always auto-sync on page load so True Leftover Wealth matches the sheet exactly
+      syncWithGoogleSheets();
     });
   </script>
 </body>
