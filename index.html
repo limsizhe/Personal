@@ -206,7 +206,7 @@
     .chart-relative-wrapper {
       position: relative;
       width: 100%;
-      height: 500px; /* Increased default height */
+      height: 500px;
     }
 
     /* Collapsible Table Section UI Components */
@@ -243,7 +243,7 @@
     
     /* Expandable Table Container States */
     .expandable-container {
-      display: none; /* Collapsed state setup by default */
+      display: none;
       transition: all 0.3s ease;
     }
     .expandable-container.expanded {
@@ -651,7 +651,7 @@
       <div class="dynamic-finance-grid" id="dynamicGridRow"></div>
 
       <div class="chart-container-panel">
-        <h3 class="table-section-title" style="margin-top: 0; border-bottom: none; font-size: 1.4rem;">20-Year Runway: Year-End True Leftover Assets vs Inflated Spending Drag</h3>
+        <h3 class="table-section-title" style="margin-top: 0; border-bottom: none; font-size: 1.4rem;">20-Year Runway Visualized: Wealth Growth vs Inflation Drag Bounds</h3>
         <div class="chart-relative-wrapper">
           <canvas id="projectionChart"></canvas>
         </div>
@@ -919,164 +919,76 @@
               saveState();
             }
           }
-          column.classList.remove('drag-over');
         });
       });
 
-      window.handleMobileMove = (taskId, targetColumn) => {
+      window.moveTaskMobile = (taskId, targetColumn) => {
         const task = state.tasks.find(t => t.id === taskId);
-        if (task && targetColumn) {
+        if(task) {
           task.column = targetColumn;
           saveState();
         }
       };
 
+      // --- Rendering UI View Transformers ---
       const renderTasks = () => {
         const counts = { 'future': 0, 'this-week': 0, 'today': 0, 'completed': 0 };
+        
         DOM.cardLists.forEach(list => list.innerHTML = '');
 
-        state.tasks.forEach(task => {
-          counts[task.column]++;
-          const listContainer = document.querySelector(`.card-list[data-column="${task.column}"]`);
-          if (!listContainer) return;
+        if(state.tasks.length === 0) {
+          DOM.cardLists.forEach(list => {
+            list.innerHTML = `<div class="empty-note">No actions logged in this track.</div>`;
+          });
+        } else {
+          state.tasks.forEach(task => {
+            counts[task.column]++;
+            const targetList = document.querySelector(`.card-list[data-column="${task.column}"]`);
+            if(!targetList) return;
 
-          const li = document.createElement('li');
-          li.className = `card ${task.category}`;
-          li.setAttribute('draggable', 'true');
-          li.setAttribute('data-id', task.id);
+            if(targetList.querySelector('.empty-note')) {
+              targetList.innerHTML = '';
+            }
 
-          const displayDate = task.date ? `<div class="card-date">📅 ${task.date}</div>` : '';
-          
-          li.innerHTML = `
-            <div class="card-header-row">
-              <div class="card-text">${task.title}</div>
-              <button class="card-delete" onclick="deleteTask('${task.id}')">✕</button>
-            </div>
-            ${displayDate}
-            <div class="card-meta">
-              <span class="badge priority-${task.priority}">P${task.priority}</span>
-            </div>
-            <div class="mobile-action-select-wrapper">
-              <select class="mobile-move-select" onchange="handleMobileMove('${task.id}', this.value)">
-                <option value="" disabled selected>Move card to...</option>
-                <option value="future" ${task.column === 'future' ? 'disabled' : ''}>Future</option>
-                <option value="this-week" ${task.column === 'this-week' ? 'disabled' : ''}>This Week</option>
-                <option value="today" ${task.column === 'today' ? 'disabled' : ''}>Today</option>
-                <option value="completed" ${task.column === 'completed' ? 'disabled' : ''}>Completed</option>
-              </select>
-            </div>
-          `;
+            const li = document.createElement('li');
+            li.className = `card ${task.category}`;
+            li.setAttribute('draggable', 'true');
+            li.setAttribute('data-id', task.id);
+            
+            let priorityText = task.priority === '3' ? 'High' : task.priority === '2' ? 'Medium' : 'Low';
+            let dateStr = task.date ? `📅 ${task.date}` : 'No target date';
 
-          listContainer.appendChild(li);
-          initDragEvents(li);
-        });
-
-        for (let col in counts) {
-          const cEl = document.getElementById(`count-${col}`);
-          const navEl = document.getElementById(`nav-count-${col}`);
-          if(cEl) cEl.innerText = counts[col];
-          if(navEl) navEl.innerText = counts[col];
-        }
-      };
-
-      // --- Financial Syncing and Charting Framework Engine ---
-      const fetchLiveFinancialTelemetry = async () => {
-        if(DOM.refreshSheetBtn) DOM.refreshSheetBtn.disabled = true;
-        if(DOM.syncStatusLabel) DOM.syncStatusLabel.innerHTML = "⚡ Requesting core records pipeline data from microservice...";
-        
-        try {
-          const response = await fetch(GOOGLE_SCRIPT_URL);
-          if (!response.ok) throw new Error("Network pipe failure");
-          
-          const jsonPayload = await response.json();
-          
-          if (jsonPayload.error) {
-            throw new Error(jsonPayload.error);
-          }
-
-          // Strict checking strategy for both camelCase and all lowercase object keys
-          state.netWorth = typeof jsonPayload.networth !== 'undefined' ? jsonPayload.networth : (jsonPayload.netWorth || 0);
-          state.bucketTotals = jsonPayload.bucketTotals || {};
-          state.items = jsonPayload.items || [];
-          state.projections = jsonPayload.projections || [];
-
-          if(DOM.syncStatusLabel) DOM.syncStatusLabel.innerHTML = `✅ Direct Sync Complete.`;
-          saveState();
-        } catch (err) {
-          console.error("Endpoint Fetch Failure: ", err);
-          if(DOM.syncStatusLabel) DOM.syncStatusLabel.innerHTML = `🚨 Connection failed. Using localized fallback cache.`;
-          loadState();
-          renderTasks();
-          renderFinancials();
-        } finally {
-          if(DOM.refreshSheetBtn) DOM.refreshSheetBtn.disabled = false;
-        }
-      };
-
-      const renderFinancials = () => {
-        if(DOM.networthDisplay) DOM.networthDisplay.innerText = formatter.format(state.netWorth);
-
-        // Render dynamic grid metric rows
-        if (DOM.dynamicGridRow) {
-          DOM.dynamicGridRow.innerHTML = '';
-          for (let bucketName in state.bucketTotals) {
-            const card = document.createElement('div');
-            card.className = "finance-stat-card";
-            card.innerHTML = `
-              <label>${bucketName}</label>
-              <div class="stat-val">${formatter.format(state.bucketTotals[bucketName])}</div>
+            li.innerHTML = `
+              <div class="card-header-row">
+                <div class="card-text">${task.title}</div>
+                <button class="card-delete" onclick="deleteTask('${task.id}')">&#10005;</button>
+              </div>
+              <div class="card-date">${dateStr}</div>
+              <div class="card-meta">
+                <span class="badge priority-${task.priority}">${priorityText}</span>
+              </div>
+              <div class="mobile-action-select-wrapper">
+                <select class="mobile-move-select" onchange="moveTaskMobile('${task.id}', this.value)">
+                  <option value="future" ${task.column === 'future' ? 'selected' : ''}>Move to: Future</option>
+                  <option value="this-week" ${task.column === 'this-week' ? 'selected' : ''}>Move to: This Wk</option>
+                  <option value="today" ${task.column === 'today' ? 'selected' : ''}>Move to: Today</option>
+                  <option value="completed" ${task.column === 'completed' ? 'selected' : ''}>Move to: Done</option>
+                </select>
+              </div>
             `;
-            DOM.dynamicGridRow.appendChild(card);
-          }
+            
+            initDragEvents(li);
+            targetList.appendChild(li);
+          });
         }
 
-        // Render individual assets lines matrix inventory table
-        if (DOM.assetTableBody) {
-          if(state.items.length === 0) {
-            DOM.assetTableBody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); font-style: italic; padding: 30px;">No records synced yet.</td></tr>`;
-          } else {
-            DOM.assetTableBody.innerHTML = state.items.map(item => `
-              <tr>
-                <td style="font-weight:600; color:var(--text-main);">${item.name}</td>
-                <td><span class="table-badge badge-type">${item.type}</span></td>
-                <td style="color:var(--text-muted);">${item.currency}</td>
-                <td>${item.unit}</td>
-                <td style="font-weight:600; color:var(--gold-color);">${formatter.format(item.amount)}</td>
-                <td><span class="table-badge badge-bucket">${item.bucket}</span></td>
-              </tr>
-            `).join('');
-          }
+        // Apply Counter Badges
+        for(let col in counts) {
+          const countEl = document.getElementById(`count-${col}`);
+          const navCountEl = document.getElementById(`nav-count-${col}`);
+          if(countEl) countEl.innerText = counts[col];
+          if(navCountEl) navCountEl.innerText = counts[col];
         }
-
-        // Render long-range runtime projection tabular row arrays
-        if (DOM.projectionTableBody) {
-          if(state.projections.length === 0) {
-            DOM.projectionTableBody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: var(--text-muted); font-style: italic; padding: 25px;">No timeline runway telemetry synchronized yet.</td></tr>`;
-          } else {
-            DOM.projectionTableBody.innerHTML = state.projections.map(p => {
-              let badgeStyleClass = "status-secure";
-              if (p.status.includes("RISK")) badgeStyleClass = "status-risk";
-              if (p.status.includes("CRITICAL")) badgeStyleClass = "status-critical";
-
-              return `
-                <tr>
-                  <td style="font-weight:600; text-align:center;">${p.year}</td>
-                  <td>${formatter.format(p.stocks)}</td>
-                  <td>${formatter.format(p.bonds)}</td>
-                  <td>${formatter.format(p.cash)}</td>
-                  <td style="color:var(--text-muted);">${formatter.format(p.grossTotal)}</td>
-                  <td style="font-weight:600; color:var(--success-green);">${formatter.format(p.trueLeftoverTotal)}</td>
-                  <td>${formatter.format(p.safeWithdrawal)}</td>
-                  <td style="color:var(--alert-color);">${formatter.format(p.inflatedSpending)}</td>
-                  <td style="text-align:center; font-weight:500;">${(p.spendingPercentage * 100).toFixed(2)}%</td>
-                  <td><span class="status-pill ${badgeStyleClass}">${p.status}</span></td>
-                </tr>
-              `;
-            }).join('');
-          }
-        }
-
-        generateVisualChartsCanvas();
       };
 
       const generateVisualChartsCanvas = () => {
@@ -1090,31 +1002,64 @@
         const labels = state.projections.map(p => p.year);
         const netAssetsTimeline = state.projections.map(p => p.trueLeftoverTotal);
         const inflationDragTimeline = state.projections.map(p => p.inflatedSpending);
+        const safeWithdrawalTimeline = state.projections.map(p => p.safeWithdrawal);
+        
+        // Map the zeroYieldBaseline array generated directly by your Apps Script API
+        const zeroYieldTimeline = state.projections.map(p => p.zeroYieldBaseline);
 
         chartInstance = new Chart(canvasCtx.getContext('2d'), {
-          type: 'line',
           data: {
             labels: labels,
             datasets: [
+              // --- LEFT Y-AXIS DATASETS (PORTFOLIO LINES) ---
               {
-                label: 'True Leftover Wealth (Post-Spend Portfolio)',
+                type: 'line',
+                label: 'True Leftover Wealth (Actual Growth Timeline)',
                 data: netAssetsTimeline,
                 borderColor: '#8EBA99',
                 backgroundColor: 'rgba(142, 186, 153, 0.05)',
                 borderWidth: 3,
                 tension: 0.15,
-                fill: true,
-                yAxisID: 'y'
+                fill: false,
+                yAxisID: 'y',
+                order: 1
               },
               {
-                label: 'Annual Inflated Budget target Drag',
-                data: inflationDragTimeline,
-                borderColor: '#D2784F',
-                backgroundColor: 'transparent',
+                type: 'line',
+                label: 'Zero-Yield Inflation Baseline (Asset Decay Benchmark)',
+                data: zeroYieldTimeline,
+                borderColor: '#A5B4FC',
                 borderWidth: 2,
-                borderDash: [6, 4],
+                borderDash: [4, 4],
                 tension: 0.1,
-                yAxisID: 'ySpending'
+                fill: false,
+                yAxisID: 'y',
+                order: 2
+              },
+              // --- RIGHT Y-AXIS DATASETS (OVERLAPPING CASH FLOW BARS) ---
+              {
+                type: 'bar',
+                label: 'Safe Annual Withdrawal (SWR Max Ceiling)',
+                data: safeWithdrawalTimeline,
+                backgroundColor: 'rgba(201, 154, 59, 0.85)',
+                borderColor: '#C99A3B',
+                borderWidth: 1,
+                yAxisID: 'ySpending',
+                categoryPercentage: 0.6,
+                barPercentage: 0.9,
+                order: 4
+              },
+              {
+                type: 'bar',
+                label: 'Annual Inflated Target Spending Drag',
+                data: inflationDragTimeline,
+                backgroundColor: 'rgba(210, 120, 79, 0.45)',
+                borderColor: '#D2784F',
+                borderWidth: 1,
+                yAxisID: 'ySpending',
+                categoryPercentage: 0.6,
+                barPercentage: 0.6,
+                order: 3
               }
             ]
           },
@@ -1122,23 +1067,47 @@
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-              legend: { labels: { color: '#EDE6D6', font: { family: 'Inter', size: 12 } } }
+              legend: { 
+                labels: { color: '#EDE6D6', font: { family: 'Inter', size: 12 } } 
+              },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    let label = context.dataset.label || '';
+                    if (label) label += ': ';
+                    if (context.parsed.y !== null) {
+                      label += formatter.format(context.parsed.y);
+                    }
+                    return label;
+                  }
+                }
+              }
             },
             scales: {
-              x: { grid: { color: 'rgba(237, 230, 214, 0.05)' }, ticks: { color: '#A9B8B2' } },
+              x: { 
+                grid: { color: 'rgba(237, 230, 214, 0.05)' }, 
+                ticks: { color: '#A9B8B2' },
+                stacked: false
+              },
               y: {
                 type: 'linear',
                 display: true,
                 position: 'left',
                 grid: { color: 'rgba(237, 230, 214, 0.08)' },
-                ticks: { color: '#8EBA99', callback: value => '$' + (value / 1000000).toFixed(1) + 'M' }
+                ticks: { 
+                  color: '#8EBA99', 
+                  callback: value => '$' + (value / 1000000).toFixed(1) + 'M' 
+                }
               },
               ySpending: {
                 type: 'linear',
                 display: true,
                 position: 'right',
                 grid: { drawOnChartArea: false },
-                ticks: { color: '#D2784F', callback: value => '$' + (value / 1000).toFixed(0) + 'k' }
+                ticks: { 
+                  color: '#EDE6D6', 
+                  callback: value => '$' + (value / 1000).toFixed(0) + 'k' 
+                }
               }
             }
           }
@@ -1147,20 +1116,130 @@
 
       window.triggerChartResize = () => {
         if(chartInstance) {
-          setTimeout(() => { chartInstance.resize(); }, 50);
+          chartInstance.resize();
         }
       };
 
-      if(DOM.refreshSheetBtn) DOM.refreshSheetBtn.addEventListener('click', fetchLiveFinancialTelemetry);
+      const renderFinancials = () => {
+        // Display Net Worth Hero amount
+        if(DOM.networthDisplay) {
+          DOM.networthDisplay.innerText = formatter.format(state.netWorth);
+        }
 
-      // Startup Orchestrator Sequence
+        // Render Asset Grid Cards
+        if(DOM.dynamicGridRow) {
+          DOM.dynamicGridRow.innerHTML = '';
+          for (let bucket in state.bucketTotals) {
+            const card = document.createElement('div');
+            card.className = 'finance-stat-card';
+            card.innerHTML = `
+              <label>${bucket} Allocation</label>
+              <div class="stat-val">${formatter.format(state.bucketTotals[bucket])}</div>
+            `;
+            DOM.dynamicGridRow.appendChild(card);
+          }
+        }
+
+        // Render Asset Breakdown Inventory Table
+        if(DOM.assetTableBody) {
+          if(state.items.length === 0) {
+            DOM.assetTableBody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); font-style: italic; padding: 30px;">No inventory elements matched.</td></tr>`;
+          } else {
+            DOM.assetTableBody.innerHTML = '';
+            state.items.forEach(item => {
+              const tr = document.createElement('tr');
+              tr.innerHTML = `
+                <td style="font-weight: 600;">${item.name}</td>
+                <td><span class="table-badge badge-type">${item.type}</span></td>
+                <td style="color: var(--text-muted);">${item.currency}</td>
+                <td>${item.unit}</td>
+                <td style="font-weight:600; color: #4FC1E9;">${formatter.format(item.amount)}</td>
+                <td><span class="table-badge badge-bucket">${item.bucket}</span></td>
+              `;
+              DOM.assetTableBody.appendChild(tr);
+            });
+          }
+        }
+
+        // Render 20-Year Runway Forecast Table Data
+        if(DOM.projectionTableBody) {
+          if(state.projections.length === 0) {
+            DOM.projectionTableBody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: var(--text-muted); font-style: italic; padding: 25px;">No timeline runway synchronized.</td></tr>`;
+          } else {
+            DOM.projectionTableBody.innerHTML = '';
+            state.projections.forEach(p => {
+              const tr = document.createElement('tr');
+              
+              let statusClass = 'status-secure';
+              if (p.status.includes('DEFICIT') || p.status.includes('RISK')) statusClass = 'status-risk';
+              if (p.status.includes('CRITICAL') || p.status.includes('OUT')) statusClass = 'status-critical';
+
+              tr.innerHTML = `
+                <td style="font-weight: 700; text-align: center;">${p.year}</td>
+                <td>${formatter.format(p.stocks)}</td>
+                <td>${formatter.format(p.bonds)}</td>
+                <td>${formatter.format(p.cash)}</td>
+                <td style="color: var(--text-muted);">${formatter.format(p.grossTotal)}</td>
+                <td style="font-weight: 700; color: var(--success-green);">${formatter.format(p.trueLeftoverTotal)}</td>
+                <td style="color: var(--gold-color);">${formatter.format(p.safeWithdrawal)}</td>
+                <td style="color: var(--alert-color);">${formatter.format(p.inflatedSpending)}</td>
+                <td style="font-weight: 500;">${(p.spendingPercentage * 100).toFixed(2)}%</td>
+                <td><span class="status-pill ${statusClass}">${p.status}</span></td>
+              `;
+              DOM.projectionTableBody.appendChild(tr);
+            });
+          }
+        }
+
+        // Draw and update the double-axis layout
+        generateVisualChartsCanvas();
+      };
+
+      const syncWithGoogleSheets = async () => {
+        if(DOM.syncStatusLabel) DOM.syncStatusLabel.innerText = "🔄 Pulling engine data streams...";
+        if(DOM.refreshSheetBtn) DOM.refreshSheetBtn.disabled = true;
+
+        try {
+          const response = await fetch(GOOGLE_SCRIPT_URL);
+          const data = await response.json();
+
+          if(data.error) {
+            alert("Error endpoint returned: " + data.error);
+            if(DOM.syncStatusLabel) DOM.syncStatusLabel.innerText = "🚨 Engine Error";
+          } else {
+            state.netWorth = data.networth || 0;
+            state.bucketTotals = data.bucketTotals || {};
+            state.items = data.items || [];
+            state.projections = data.projections || [];
+            
+            saveState();
+            
+            if(DOM.syncStatusLabel) {
+              const now = new Date();
+              DOM.syncStatusLabel.innerText = `✅ Synchronized: Today at ${now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+            }
+          }
+        } catch(err) {
+          console.error(err);
+          alert("Network connection failure trying to hit Apps Script.");
+          if(DOM.syncStatusLabel) DOM.syncStatusLabel.innerText = "❌ Sync Failure";
+        } finally {
+          if(DOM.refreshSheetBtn) DOM.refreshSheetBtn.disabled = false;
+        }
+      };
+
+      if(DOM.refreshSheetBtn) {
+        DOM.refreshSheetBtn.addEventListener('click', syncWithGoogleSheets);
+      }
+
+      // Bootstrap Initialize Runtime State
       loadState();
       renderTasks();
-      if (state.projections.length > 0 || state.items.length > 0) {
-        renderFinancials();
-        if(DOM.syncStatusLabel) DOM.syncStatusLabel.innerHTML = "✅ Local Cache Recovered.";
-      } else {
-        fetchLiveFinancialTelemetry();
+      renderFinancials();
+      
+      // Auto-refresh via endpoint on initial page load if local cache is completely fresh/empty
+      if(state.projections.length === 0) {
+        syncWithGoogleSheets();
       }
     });
   </script>
