@@ -1,4 +1,788 @@
-<script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Personal Nexus — Task & Finance Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;1,400&display=swap" rel="stylesheet">
+  
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <style>
+    :root {
+      /* Deep Dark Mode Palette */
+      --bg-color: #121E22;
+      --panel-bg: #1A2A2F;
+      --card-bg: #22373E;
+      --text-main: #EDE6D6;
+      --text-muted: #A9B8B2;
+      --border-color: rgba(237, 230, 214, 0.12);
+      --alert-color: #D2784F;
+      --gold-color: #C99A3B;
+      --gold-hover: #E0AB43;
+      --calendar-color: #4A90E2;
+      --success-green: #8EBA99;
+      
+      /* Categories Accents */
+      --cat-home-color: #5D9CEC;
+      --cat-money-color: #4FC1E9;
+      --cat-health-color: #EC87C0;
+      --cat-fun-color: #F6BB42;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      line-height: 1.5;
+      padding-bottom: 60px;
+    }
+
+    /* Core View Layer Switching Architecture */
+    .app-view {
+      display: none;
+      padding: 40px 20px;
+    }
+    .app-view.active-view {
+      display: block;
+    }
+
+    /* Global Navigation Bar Styles */
+    .global-nav {
+      background-color: var(--panel-bg);
+      border-bottom: 1px solid var(--border-color);
+      padding: 12px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .nav-brand {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: var(--gold-color);
+      cursor: pointer;
+    }
+    .nav-links {
+      display: flex;
+      gap: 16px;
+    }
+
+    /* Portal Home Dashboard Styles */
+    .portal-container {
+      max-width: 1000px;
+      margin: 60px auto;
+      text-align: center;
+    }
+    .portal-header h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 3rem;
+      margin-bottom: 12px;
+    }
+    .portal-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 30px;
+      margin-top: 50px;
+    }
+    .portal-card {
+      background-color: var(--panel-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 40px 30px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+    .portal-card:hover {
+      transform: translateY(-5px);
+      border-color: var(--gold-color);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+    .portal-icon {
+      font-size: 3rem;
+      color: var(--gold-color);
+    }
+    .portal-card h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.6rem;
+    }
+    .portal-card p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    /* Financial Overview Layout Architecture */
+    .finance-container {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .sheet-config-panel {
+      background-color: var(--panel-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 30px;
+    }
+    .config-controls-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      margin-top: 12px;
+    }
+    .config-box {
+      flex: 1;
+      min-width: 200px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .config-box label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .networth-hero {
+      background: radial-gradient(circle at top left, var(--panel-bg), var(--card-bg));
+      border: 1px solid var(--gold-color);
+      border-radius: 16px;
+      padding: 40px;
+      text-align: center;
+      margin-bottom: 30px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    }
+    .networth-label {
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+    .networth-amount {
+      font-family: 'Playfair Display', serif;
+      font-size: 4rem;
+      font-weight: 600;
+      color: var(--gold-color);
+      margin: 10px 0;
+    }
+    .sync-status {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+    
+    /* Dynamically Adaptive Grid Setup */
+    .dynamic-finance-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+    .finance-stat-card {
+      background-color: var(--panel-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 20px;
+    }
+    .finance-stat-card label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .stat-val {
+      font-size: 1.6rem;
+      font-weight: 600;
+      margin-top: 6px;
+      color: #4FC1E9;
+    }
+
+    /* Graphical Projection Panel - Optimized heights */
+    .chart-container-panel {
+      background-color: var(--panel-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 24px;
+      margin: 30px 0;
+    }
+    .chart-relative-wrapper {
+      position: relative;
+      width: 100%;
+      height: 500px;
+    }
+
+    /* Collapsible Table Section UI Components */
+    .section-header-toggle {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 40px 0 16px 0;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 8px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .section-header-toggle:hover .table-section-title {
+      color: var(--gold-hover);
+    }
+    .table-section-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.8rem;
+      color: var(--text-main);
+      margin: 0;
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+    .toggle-indicator {
+      font-size: 0.9rem;
+      background-color: rgba(237, 230, 214, 0.08);
+      color: var(--text-muted);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-weight: 600;
+      transition: all 0.2s ease;
+    }
+    
+    /* Expandable Table Container States */
+    .expandable-container {
+      display: none;
+      transition: all 0.3s ease;
+    }
+    .expandable-container.expanded {
+      display: block;
+    }
+
+    .table-responsive-wrapper {
+      background-color: var(--panel-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      overflow-x: auto;
+      margin-bottom: 30px;
+    }
+    .asset-data-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.9rem;
+    }
+    .asset-data-table th {
+      background-color: var(--card-bg);
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 1px;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border-color);
+      white-space: nowrap;
+    }
+    .asset-data-table td {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border-color);
+      color: var(--text-main);
+      white-space: nowrap;
+    }
+    .asset-data-table tr:hover td {
+      background-color: rgba(237, 230, 214, 0.02);
+    }
+    
+    /* Type & Bucket Pill Badge Elements styling */
+    .table-badge {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+    .badge-type { background-color: #314d56; color: #a4cbd6; }
+    .badge-bucket { background-color: #443c2c; color: #dcbc82; }
+
+    /* Target Asset Status Pill Indicators */
+    .status-pill { padding: 4px 8px; border-radius: 6px; font-weight: bold; font-size: 0.75rem; }
+    .status-secure { background-color: rgba(142, 186, 153, 0.2); color: var(--success-green); }
+    .status-risk { background-color: rgba(201, 154, 59, 0.2); color: #DCB462; }
+    .status-critical { background-color: rgba(210, 120, 79, 0.2); color: var(--alert-color); }
+
+    /* Task Tracker Native CSS Rules Styling */
+    header {
+      max-width: 1400px;
+      margin: 0 auto 30px auto;
+      text-align: center;
+    }
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-weight: 600;
+      font-size: 2.5rem;
+      margin-bottom: 8px;
+      letter-spacing: -0.5px;
+    }
+    .subtitle-wrapper {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+    .subtitle {
+      font-family: 'Playfair Display', serif;
+      font-style: italic;
+      color: var(--text-muted);
+      font-size: 1.1rem;
+    }
+    .header-actions {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin: 20px auto 10px auto;
+      flex-wrap: wrap;
+    }
+    .action-btn {
+      background-color: transparent;
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .action-btn:hover {
+      background-color: rgba(237, 230, 214, 0.05);
+      border-color: var(--text-muted);
+    }
+    .action-btn.primary {
+      background-color: var(--gold-color);
+      color: #121E22;
+      border-color: var(--gold-color);
+      font-weight: 600;
+    }
+    .action-btn.primary:hover {
+      background-color: var(--gold-hover);
+      border-color: var(--gold-hover);
+    }
+
+    /* Mobile Floating Action Button (FAB) */
+    .mobile-fab {
+      display: none;
+      position: fixed;
+      bottom: 76px;
+      right: 20px;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background-color: var(--gold-color);
+      color: #121E22;
+      border: none;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+      font-size: 1.8rem;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 999;
+    }
+
+    /* Mobile Bottom Navigation Bar Switcher */
+    .mobile-nav {
+      display: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background-color: var(--panel-bg);
+      border-top: 1px solid var(--border-color);
+      grid-template-columns: repeat(4, 1fr);
+      z-index: 1000;
+    }
+    .mobile-nav-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 12px 6px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+    .mobile-nav-btn.active {
+      color: var(--gold-color);
+    }
+    .mobile-nav-btn .nav-count {
+      font-size: 0.7rem;
+      background-color: rgba(237, 230, 214, 0.1);
+      color: var(--text-main);
+      padding: 1px 6px;
+      border-radius: 10px;
+    }
+
+    /* Kanban Layout Grid Systems */
+    .board-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      overflow-x: auto;
+    }
+    .board {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(280px, 1fr));
+      gap: 20px;
+    }
+    .column {
+      background-color: var(--panel-bg);
+      border-radius: 12px;
+      padding: 16px;
+      min-height: 600px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      transition: background-color 0.2s ease;
+    }
+    .column.drag-over {
+      background-color: rgba(237, 230, 214, 0.04);
+    }
+    .column-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .column-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+    .column-count {
+      font-size: 0.8rem;
+      background-color: rgba(237, 230, 214, 0.1);
+      padding: 2px 8px;
+      border-radius: 20px;
+    }
+    .card-list {
+      list-style-type: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      flex-grow: 1;
+      min-height: 150px;
+    }
+    .card {
+      background-color: var(--card-bg);
+      border-radius: 8px;
+      padding: 16px;
+      border: 1px solid var(--border-color);
+      border-left: 4px solid transparent;
+      cursor: grab;
+      position: relative;
+      transition: opacity 0.2s ease, transform 0.1s ease;
+    }
+    .card:active {
+      cursor: grabbing;
+    }
+    .card.dragging {
+      opacity: 0.4;
+    }
+    .card-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 8px;
+    }
+    .card-text { font-size: 0.95rem; font-weight: 500; }
+    .card-delete { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1rem; }
+    .card-delete:hover { color: var(--alert-color); }
+    .card-date { font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; }
+    .card-meta { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+    .badge { font-size: 0.72rem; font-weight: 600; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; }
+    .badge.priority-3 { background-color: rgba(210, 120, 79, 0.2); color: #E28F6B; }
+    .badge.priority-2 { background-color: rgba(201, 154, 59, 0.2); color: #DCB462; }
+    .badge.priority-1 { background-color: rgba(169, 184, 178, 0.15); color: var(--text-muted); }
+    .card.cat-home { border-left-color: var(--cat-home-color); }
+    .card.cat-money { border-left-color: var(--cat-money-color); }
+    .card.cat-health { border-left-color: var(--cat-health-color); }
+    .card.cat-fun { border-left-color: var(--cat-fun-color); }
+    .empty-note { font-size: 0.85rem; color: var(--text-muted); text-align: center; padding: 40px 0; font-style: italic; pointer-events: none; }
+    .mobile-action-select-wrapper { display: none; margin-top: 10px; }
+    .mobile-move-select { width: 100%; background-color: var(--panel-bg); color: var(--text-main); padding: 6px; border: 1px solid var(--border-color); border-radius: 4px; }
+
+    /* Modals Overlays Structural Layering */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background-color: rgba(18, 30, 34, 0.85);
+      backdrop-filter: blur(4px);
+      display: flex; justify-content: center; align-items: center;
+      opacity: 0; pointer-events: none; transition: opacity 0.25s ease; z-index: 2000;
+    }
+    .modal-overlay.active { opacity: 1; pointer-events: auto; }
+    .modal-window {
+      background-color: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 14px;
+      width: 100%; max-width: 550px; display: flex; flex-direction: column;
+    }
+    .modal-header { padding: 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+    .modal-title { font-family: 'Playfair Display', serif; font-size: 1.4rem; }
+    .close-modal-btn { background: transparent; border: none; color: var(--text-main); font-size: 1.5rem; cursor: pointer; }
+    .modal-content { padding: 20px; }
+    .task-form { display: flex; flex-direction: column; gap: 16px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    input[type="text"], input[type="date"], select {
+      width: 100%; min-height: 44px; padding: 10px; border: 1px solid var(--border-color);
+      border-radius: 8px; background-color: var(--card-bg); color: var(--text-main); font-family: inherit;
+    }
+    .submit-btn { min-height: 46px; background-color: var(--gold-color); border: none; border-radius: 8px; font-weight: 600; cursor: pointer; color: #121E22; }
+    .submit-btn:hover { background-color: var(--gold-hover); }
+
+    /* Smartphone Optimization Overrides */
+    @media (max-width: 768px) {
+      .portal-grid { grid-template-columns: 1fr; gap: 20px; }
+      .board { grid-template-columns: 1fr; gap: 0; }
+      .column { display: none; min-height: auto; background-color: transparent; padding: 0; }
+      .column.active-column { display: flex; }
+      .mobile-fab { display: flex; }
+      .mobile-nav { display: grid; }
+      .mobile-action-select-wrapper { display: block; }
+      .app-view { padding: 20px 14px; }
+      .networth-amount { font-size: 2.5rem; }
+      .chart-relative-wrapper { height: 420px; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="global-nav">
+    <div class="nav-brand" onclick="switchView('portal-view')">❖ Personal Nexus</div>
+    <div class="nav-links">
+      <button class="action-btn" onclick="switchView('portal-view')">Home Portal</button>
+      <button class="action-btn" onclick="switchView('tasks-view')">Task Tracker</button>
+      <button class="action-btn" onclick="switchView('finance-view')">Financial Overview</button>
+    </div>
+  </nav>
+
+  <div id="portal-view" class="app-view active-view">
+    <div class="portal-container">
+      <div class="portal-header">
+        <h1>Welcome to Your Workspace</h1>
+        <p class="subtitle">Streamlined flow, structured focus, unified wealth tracker.</p>
+      </div>
+      <div class="portal-grid">
+        <div class="portal-card" onclick="switchView('tasks-view')">
+          <div class="portal-icon">📋</div>
+          <h2>Task Tracker Board</h2>
+          <p>Organize milestones and manage actions using a responsive, low-friction Kanban dashboard layout.</p>
+        </div>
+        <div class="portal-card" onclick="switchView('finance-view')">
+          <div class="portal-icon">📊</div>
+          <h2>Financial Overview</h2>
+          <p>Sync direct live assets spreadsheet configurations to instantly inspect current real-time Net Worth valuations.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tasks-view" class="app-view">
+    <header>
+      <h1>Task Tracker</h1>
+      <div class="subtitle-wrapper">
+        <p class="subtitle">Visual flow management framework.</p>
+      </div>
+      <div class="header-actions">
+        <button class="action-btn primary" id="openTaskFormBtn">+ Add New Task</button>
+      </div>
+    </header>
+
+    <button class="mobile-fab" id="mobileFabBtn">+</button>
+
+    <nav class="mobile-nav" id="mobileNavRow">
+      <button class="mobile-nav-btn active" data-target="future"><span>Future</span><span class="nav-count" id="nav-count-future">0</span></button>
+      <button class="mobile-nav-btn" data-target="this-week"><span>This Wk</span><span class="nav-count" id="nav-count-this-week">0</span></button>
+      <button class="mobile-nav-btn" data-target="today"><span>Today</span><span class="nav-count" id="nav-count-today">0</span></button>
+      <button class="mobile-nav-btn" data-target="completed"><span>Done</span><span class="nav-count" id="nav-count-completed">0</span></button>
+    </nav>
+
+    <div class="board-container">
+      <div class="board">
+        <div class="column active-column" id="future">
+          <div class="column-header"><span class="column-title">Future</span><span class="column-count" id="count-future">0</span></div>
+          <ul class="card-list" data-column="future"></ul>
+        </div>
+        <div class="column" id="this-week">
+          <div class="column-header"><span class="column-title">This Week</span><span class="column-count" id="count-this-week">0</span></div>
+          <ul class="card-list" data-column="this-week"></ul>
+        </div>
+        <div class="column" id="today">
+          <div class="column-header"><span class="column-title">Today</span><span class="column-count" id="count-today">0</span></div>
+          <ul class="card-list" data-column="today"></ul>
+        </div>
+        <div class="column" id="completed">
+          <div class="column-header"><span class="column-title">Completed</span><span class="column-count" id="count-completed">0</span></div>
+          <ul class="card-list" data-column="completed"></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="finance-view" class="app-view">
+    <div class="finance-container">
+      <header>
+        <h1>Financial Overview</h1>
+        <p class="subtitle">Real-time wealth tracking telemetry engine.</p>
+      </header>
+
+      <div class="sheet-config-panel">
+        <label style="font-size: 0.85rem; color: var(--gold-color); font-weight: 600;">Engine Controls & Parameters</label>
+        <div class="config-controls-row">
+          <div class="config-box" style="flex: 0 0 auto; min-width: 160px; justify-content: flex-end;">
+            <button class="action-btn primary" id="refreshSheetBtn" style="border-radius: 8px; white-space: nowrap; width: 100%; height: 44px; display: flex; justify-content: center;">🔄 Refresh Balances</button>
+          </div>
+          <div class="config-box">
+            <label for="horizonSelect">Projection Timeline Horizon</label>
+            <select id="horizonSelect">
+              <option value="10">Age 30 to 40 (10 Years)</option>
+              <option value="20" selected>Age 30 to 50 (20 Years)</option>
+              <option value="30">Age 30 to 60 (30 Years)</option>
+              <option value="40">Age 30 to 70 (40 Years)</option>
+              <option value="50">Age 30 to 80 (50 Years)</option>
+              <option value="60">Age 30 to 90 (60 Years)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="networth-hero">
+        <div class="networth-label">Calculated Net Worth</div>
+        <div class="networth-amount" id="networthDisplay">$0.00</div>
+        <div class="sync-status" id="syncStatusLabel">⏳ Connecting Engine...</div>
+      </div>
+
+      <div class="dynamic-finance-grid" id="dynamicGridRow"></div>
+
+      <div class="chart-container-panel">
+        <h3 class="table-section-title" id="chartTitleText" style="margin-top: 0; border-bottom: none; font-size: 1.4rem;">Age Runway Visualized: Wealth Growth vs Inflation Drag Bounds</h3>
+        <div class="chart-relative-wrapper">
+          <canvas id="projectionChart"></canvas>
+        </div>
+      </div>
+
+      <div class="section-header-toggle" onclick="toggleContainer('projectionsContainer', 'projToggleInd')">
+        <h2 class="table-section-title" id="tableTitleText">Age Runway Projections Model</h2>
+        <span class="toggle-indicator" id="projToggleInd">▶ Expand</span>
+      </div>
+      <div class="expandable-container" id="projectionsContainer">
+        <div class="table-responsive-wrapper">
+          <table class="asset-data-table">
+            <thead>
+              <tr>
+                <th>Timeline Age</th>
+                <th>Nominal Stocks</th>
+                <th>Nominal Bonds</th>
+                <th>Nominal Cash</th>
+                <th>Gross Assets (Pre-Spend)</th>
+                <th>True Leftover (Post-Spend)</th>
+                <th>Safe Withdrawal (SWR)</th>
+                <th>Inflated Target Spending</th>
+                <th>Spending % of Gross</th>
+                <th>Status Safety Check</th>
+              </tr>
+            </thead>
+            <tbody id="projectionTableBody">
+              <tr>
+                <td colspan="10" style="text-align: center; color: var(--text-muted); font-style: italic; padding: 25px;">No timeline runway telemetry synchronized yet.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="section-header-toggle" onclick="toggleContainer('inventoryContainer', 'invToggleInd')">
+        <h2 class="table-section-title">Asset Inventory Breakdown</h2>
+        <span class="toggle-indicator" id="invToggleInd">▶ Expand</span>
+      </div>
+      <div class="expandable-container" id="inventoryContainer">
+        <div class="table-responsive-wrapper">
+          <table class="asset-data-table">
+            <thead>
+              <tr>
+                <th>Investment Asset</th>
+                <th>Type</th>
+                <th>Currency</th>
+                <th>Units</th>
+                <th>Amount (USD Equivalent)</th>
+                <th>Bucket</th>
+              </tr>
+            </thead>
+            <tbody id="assetTableBody">
+              <tr>
+                <td colspan="6" style="text-align: center; color: var(--text-muted); font-style: italic; padding: 30px;">No active stream synchronized yet. Click refresh to pull data.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="taskModal">
+    <div class="modal-window">
+      <div class="modal-header">
+        <h2 class="modal-title">Create New Task</h2>
+        <button class="close-modal-btn" id="closeTaskModalBtn">&#10005;</button>
+      </div>
+      <div class="modal-content">
+        <form class="task-form" id="taskForm">
+          <div class="form-group">
+            <label for="taskTitle">Task Title</label>
+            <input type="text" id="taskTitle" required autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label for="taskPriority">Priority</label>
+            <select id="taskPriority" required>
+              <option value="3">High</option>
+              <option value="2" selected>Medium</option>
+              <option value="1">Low</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="taskDate">Target Date</label>
+            <input type="date" id="taskDate">
+          </div>
+          <div class="form-group">
+            <label for="taskCategory">Category</label>
+            <select id="taskCategory" required>
+              <option value="cat-home">Home & Chores</option>
+              <option value="cat-money">Money & Admin</option>
+              <option value="cat-health">Health & Self-Care</option>
+              <option value="cat-fun">Fun & Growth</option>
+            </select>
+          </div>
+          <button type="submit" class="submit-btn">Save Task Entry</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
     window.switchView = function(viewId) {
       document.querySelectorAll('.app-view').forEach(view => {
         view.classList.remove('active-view');
@@ -303,7 +1087,7 @@
           if(!state.projections || state.projections.length === 0) {
             DOM.projectionTableBody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: var(--text-muted); padding: 25px;">No parameters generated.</td></tr>`;
           } else {
-            // Filter down table row items to matches timeline horizon length boundary selection rules
+            // Filter down table row items to match timeline horizon selection
             const filteredProjections = state.projections.slice(0, state.projectionHorizonYears + 1);
 
             filteredProjections.forEach(row => {
@@ -343,7 +1127,7 @@
 
         if(!state.projections || state.projections.length === 0) return;
 
-        // CRITICAL FIX: Slice your projections dataset based on the current selected horizon years
+        // FIXED: Slice projections data based on selected horizon parameters to stop visualization stretch glitches
         const horizonSlice = state.projections.slice(0, state.projectionHorizonYears + 1);
 
         const ageLabels = horizonSlice.map(r => `Age ${r.age}`);
