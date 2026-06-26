@@ -523,7 +523,7 @@
     .card.cat-health { border-left-color: var(--cat-health-color); }
     .card.cat-fun { border-left-color: var(--cat-fun-color); }
     .empty-note { font-size: 0.85rem; color: var(--text-muted); text-align: center; padding: 40px 0; font-style: italic; pointer-events: none; }
-    .mobile-action-select-wrapper { display: none; margin-top: 10px; }
+    .mobile-action-select-wrapper { display: block; margin-top: 10px; }
     .mobile-move-select { width: 100%; background-color: var(--panel-bg); color: var(--text-main); padding: 6px; border: 1px solid var(--border-color); border-radius: 4px; }
 
     /* Modals Overlays Structural Layering */
@@ -813,6 +813,7 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       // Endpoint Web App Link targeting Google Apps Script Engine Deployment Link
+      // ⚠️ MAKE SURE THIS EXTENSION MATCHES YOUR /exec DEPLOYMENT BLOCK URL EXPLICITLY!
       const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbykmdGppgmmMZF9vp4jNfHCyoGUHBsbsO44hfx9aG6jVfYtzGU-JbmYF5IbwYobWujg/exec";
 
       // Global Client-Side Synchronized Cache Application Core State Model
@@ -898,7 +899,12 @@
         draggedTaskId = this.getAttribute('data-id');
         this.classList.add('dragging');
         e.dataTransfer.effectAllowed = 'move';
-        e.dataTransfer.setData('text/plain', draggedTaskId);
+      }
+
+      function handleDragEnd() {
+        this.classList.remove('dragging');
+        DOM.columns.forEach(col => col.classList.remove('drag-over'));
+        draggedTaskId = null;
       }
 
       function handleDragOver(e) {
@@ -915,39 +921,54 @@
       }
 
       function handleDrop(e) {
-        if (e.stopPropagation) e.stopPropagation();
-        this.classList.remove('drag-over');
-        
-        const targetColumn = this.getAttribute('data-column');
+        e.stopPropagation();
+        const targetColumn = this.getAttribute('id') || this.getAttribute('data-column');
         if (draggedTaskId && targetColumn) {
-          moveTask(draggedTaskId, targetColumn);
+          state.tasks = state.tasks.map(task => {
+            if (task.id === draggedTaskId) {
+              return { ...task, column: targetColumn };
+            }
+            return task;
+          });
+          saveState();
         }
         return false;
       }
 
-      function handleDragEnd() {
-        this.classList.remove('dragging');
-        DOM.cardLists.forEach(list => list.classList.remove('drag-over'));
-      }
-
-      // Task Operations Management
-      const moveTask = (id, targetColumn) => {
-        state.tasks = state.tasks.map(task => {
-          if (task.id === id) task.column = targetColumn;
-          return task;
+      // Mobile Responsive View Column Target Toggles Switcher Interface Layout
+      DOM.mobileNavBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+          DOM.mobileNavBtns.forEach(b => b.classList.remove('active'));
+          this.classList.add('active');
+          
+          const targetId = this.getAttribute('data-target');
+          DOM.columns.forEach(col => {
+            if (col.getAttribute('id') === targetId) {
+              col.classList.add('active-column');
+            } else {
+              col.classList.remove('active-column');
+            }
+          });
         });
-        saveState();
-      };
+      });
 
+      // Data Form Input Submission Interception Processing Routine
       DOM.taskForm.addEventListener('submit', (e) => {
         e.preventDefault();
+        const title = document.getElementById('taskTitle').value.trim();
+        const priority = document.getElementById('taskPriority').value;
+        const rawDate = document.getElementById('taskDate').value;
+        const category = document.getElementById('taskCategory').value;
+
+        if (!title) return;
+
         const newTask = {
-          id: 'task_' + Date.now(),
-          title: document.getElementById('taskTitle').value,
-          priority: document.getElementById('taskPriority').value,
-          date: document.getElementById('taskDate').value || 'No Date',
-          category: document.getElementById('taskCategory').value,
-          column: 'future'
+          id: 'task_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+          title,
+          priority: parseInt(priority),
+          date: rawDate ? rawDate : 'No target date',
+          category,
+          column: 'future' // Base initiation bucket default fallback node allocation
         };
 
         state.tasks.push(newTask);
@@ -956,267 +977,333 @@
         saveState();
       });
 
-      window.deleteTask = (id) => {
-        state.tasks = state.tasks.filter(task => task.id !== id);
+      window.deleteTask = function(taskId) {
+        state.tasks = state.tasks.filter(t => t.id !== taskId);
         saveState();
       };
 
+      window.moveTaskMobile = function(taskId, targetColumn) {
+        if (!targetColumn) return;
+        state.tasks = state.tasks.map(t => t.id === taskId ? { ...t, column: targetColumn } : t);
+        saveState();
+      };
+
+      // Task Queue Node Graph Data Layout Canvas Renderer
       const renderTasks = () => {
-        const columnsData = { future: [], 'this-week': [], today: [], completed: [] };
+        const counts = { 'future': 0, 'this-week': 0, 'today': 0, 'completed': 0 };
         
         DOM.cardLists.forEach(list => list.innerHTML = '');
 
-        state.tasks.forEach(task => {
-          if (columnsData[task.column]) columnsData[task.column].push(task);
-        });
+        if (state.tasks.length === 0) {
+          DOM.cardLists.forEach(list => {
+            list.innerHTML = `<div class="empty-note">No active nodes here. Empty queue.</div>`;
+          });
+        } else {
+          state.tasks.forEach(task => {
+            counts[task.column] = (counts[task.column] || 0) + 1;
+            const targetList = document.querySelector(`.card-list[data-column="${task.column}"]`);
+            
+            if (targetList) {
+              const emptyNote = targetList.querySelector('.empty-note');
+              if (emptyNote) emptyNote.remove();
 
-        Object.keys(columnsData).forEach(colId => {
+              const li = document.createElement('li');
+              li.className = `card ${task.category}`;
+              li.setAttribute('draggable', 'true');
+              li.setAttribute('data-id', task.id);
+              
+              li.addEventListener('dragstart', handleDragStart);
+              li.addEventListener('dragend', handleDragEnd);
+
+              li.innerHTML = `
+                <div class="card-header-row">
+                  <div class="card-text">${escapeHTML(task.title)}</div>
+                  <button class="card-delete" onclick="deleteTask('${task.id}')">&#10005;</button>
+                </div>
+                <div class="card-date">📅 ${task.date}</div>
+                <div class="card-meta">
+                  <span class="badge priority-${task.priority}">P${task.priority === 3 ? '•High' : task.priority === 2 ? '•Med' : '•Low'}</span>
+                  <span class="badge table-badge badge-type">${task.category.replace('cat-', '')}</span>
+                </div>
+                <div class="mobile-action-select-wrapper">
+                  <select class="mobile-move-select" onchange="moveTaskMobile('${task.id}', this.value)">
+                    <option value="" disabled selected>Move node to...</option>
+                    <option value="future" ${task.column === 'future' ? 'disabled' : ''}>Future</option>
+                    <option value="this-week" ${task.column === 'this-week' ? 'disabled' : ''}>This Week</option>
+                    <option value="today" ${task.column === 'today' ? 'disabled' : ''}>Today</option>
+                    <option value="completed" ${task.column === 'completed' ? 'disabled' : ''}>Completed</option>
+                  </select>
+                </div>
+              `;
+              targetList.appendChild(li);
+            }
+          });
+        }
+
+        // Apply Metric Value Updates into Header Badges
+        for (const [colId, val] of Object.entries(counts)) {
           const countEl = document.getElementById(`count-${colId}`);
           const navCountEl = document.getElementById(`nav-count-${colId}`);
-          const listEl = document.querySelector(`[data-column="${colId}"]`);
-          
-          if (countEl) countEl.innerText = columnsData[colId].length;
-          if (navCountEl) navCountEl.innerText = columnsData[colId].length;
-
-          if (columnsData[colId].length === 0) {
-            listEl.innerHTML = `<li class="empty-note">No tasks in this lane</li>`;
-            return;
-          }
-
-          columnsData[colId].forEach(task => {
-            const li = document.createElement('li');
-            li.className = `card ${task.category}`;
-            li.setAttribute('draggable', 'true');
-            li.setAttribute('data-id', task.id);
-            
-            li.innerHTML = `
-              <div class="card-header-row">
-                <span class="card-text">${task.title}</span>
-                <button class="card-delete" onclick="deleteTask('${task.id}')">&#10005;</button>
-              </div>
-              <div class="card-date">📅 ${task.date}</div>
-              <div class="card-meta">
-                <span class="badge priority-${task.priority}">P${task.priority}</span>
-              </div>
-              <div class="mobile-action-select-wrapper">
-                <select class="mobile-move-select" onchange="moveTask('${task.id}', this.value)">
-                  <option value="">Move lane...</option>
-                  <option value="future" ${task.column==='future'?'selected':''}>Future</option>
-                  <option value="this-week" ${task.column==='this-week'?'selected':''}>This Week</option>
-                  <option value="today" ${task.column==='today'?'selected':''}>Today</option>
-                  <option value="completed" ${task.column==='completed'?'selected':''}>Done</option>
-                </select>
-              </div>
-            `;
-
-            li.addEventListener('dragstart', handleDragStart);
-            li.addEventListener('dragend', handleDragEnd);
-            listEl.appendChild(li);
-          });
-        });
-      };
-
-      // Telemetry Spreadsheet Engine Syncing Layer
-      const fetchFinancialData = async () => {
-        if (DOM.syncStatusLabel) DOM.syncStatusLabel.innerHTML = "⏳ Syncing live data ledger...";
-        
-        try {
-          const response = await fetch(GOOGLE_SCRIPT_URL);
-          if (!response.ok) throw new Error("Network response error");
-          
-          const data = await response.json();
-          
-          state.netWorth = data.netWorth || 0;
-          state.bucketTotals = data.bucketTotals || {};
-          state.items = data.items || [];
-          state.projections = data.projections || [];
-
-          if (DOM.syncStatusLabel) {
-            DOM.syncStatusLabel.innerHTML = `<span style="color:var(--success-green)">● Engine Linked & Synchronized</span>`;
-          }
-          saveState();
-        } catch (error) {
-          console.error("Financial Sync Failed:", error);
-          if (DOM.syncStatusLabel) {
-            DOM.syncStatusLabel.innerHTML = `<span style="color:var(--alert-color)">✕ Engine connection dropped. Operating from cached ledger data.</span>`;
-          }
-          // Fallback rendering from storage
-          renderFinancials();
+          if (countEl) countEl.innerText = val;
+          if (navCountEl) navCountEl.innerText = val;
         }
       };
 
+      // XSS Prevention String Sanitization Routine Tool
+      const escapeHTML = (str) => {
+        return str.replace(/[&<>'"]/g, 
+          tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+        );
+      };
+
+      // Financial Telemetry Core Remote Script Data Fetch Execution Pipeline
+      const syncFinancialData = async () => {
+        DOM.refreshSheetBtn.disabled = true;
+        DOM.refreshSheetBtn.innerText = "⏳ Syncing Core...";
+        DOM.syncStatusLabel.innerText = "⚡ Synchronizing remote assets stream topology...";
+
+        try {
+          const url = `${GOOGLE_SCRIPT_URL}?horizon=${state.projectionHorizonYears}`;
+          
+          // Clean configuration structure to prevent cross-origin preflight errors
+          const response = await fetch(url, {
+            method: "GET",
+            mode: "cors"
+          });
+          
+          if (!response.ok) throw new Error("Network configuration fault sequence.");
+          
+          const payload = await response.json();
+
+          state.netWorth = payload.netWorth || 0;
+          state.bucketTotals = payload.bucketTotals || {};
+          state.items = payload.items || [];
+          state.projections = payload.projections || [];
+
+          DOM.syncStatusLabel.innerText = `✅ Verified Live Engine Active. Last sync: ${new Date().toLocaleTimeString()}`;
+          saveState();
+        } catch (err) {
+          console.error(err);
+          DOM.syncStatusLabel.innerText = "❌ Engine connection dropped. Operating from cached ledger data.";
+        } finally {
+          DOM.refreshSheetBtn.disabled = false;
+          DOM.refreshSheetBtn.innerText = "🔄 Refresh Balances";
+        }
+      };
+
+      // Financial UI View Elements Engine Component Graph Renderer
       const renderFinancials = () => {
         if (DOM.networthDisplay) DOM.networthDisplay.innerText = formatter.format(state.netWorth);
 
-        // Render Summary Grid Cards
+        // Render Strategy Allocation Sub-bucket grid card summaries
         if (DOM.dynamicGridRow) {
           DOM.dynamicGridRow.innerHTML = '';
-          Object.keys(state.bucketTotals).forEach(bucket => {
-            const card = document.createElement('div');
-            card.className = 'finance-stat-card';
-            card.innerHTML = `
-              <label>${bucket}</label>
-              <div class="stat-val">${formatter.format(state.bucketTotals[bucket])}</div>
-            `;
-            DOM.dynamicGridRow.appendChild(card);
-          });
-        }
-
-        // Render Inventory Breakdown
-        if (DOM.assetTableBody) {
-          if (state.items.length === 0) {
-            DOM.assetTableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; font-style:italic;">No synchronized asset logs available.</td></tr>`;
+          if (Object.keys(state.bucketTotals).length === 0) {
+            DOM.dynamicGridRow.innerHTML = `<div class="empty-note" style="grid-column: 1/-1;">No strategic sub-buckets active.</div>`;
           } else {
-            DOM.assetTableBody.innerHTML = state.items.map(item => `
-              <tr>
-                <td><b>${item.asset}</b></td>
-                <td><span class="table-badge badge-type">${item.type}</span></td>
-                <td>${item.currency || 'USD'}</td>
-                <td>${item.units ? item.units.toLocaleString() : '-'}</td>
-                <td>${formatter.format(item.amount)}</td>
-                <td><span class="table-badge badge-bucket">${item.bucket}</span></td>
-              </tr>
-            `).join('');
-          }
-        }
-
-        // Render Age Runway Projections Model
-        if (DOM.projectionTableBody) {
-          const filteredProjections = state.projections.slice(0, state.projectionHorizonYears + 1);
-          if (filteredProjections.length === 0) {
-            DOM.projectionTableBody.innerHTML = `<tr><td colspan="10" style="text-align:center; font-style:italic;">No modeling runway generated.</td></tr>`;
-          } else {
-            DOM.projectionTableBody.innerHTML = filteredProjections.map(row => {
-              let statusClass = "status-secure";
-              if(row.status === "Risk") statusClass = "status-risk";
-              if(row.status === "Critical") statusClass = "status-critical";
-
-              return `
-                <tr>
-                  <td>Age ${row.age}</td>
-                  <td>${formatter.format(row.stocks)}</td>
-                  <td>${formatter.format(row.bonds)}</td>
-                  <td>${formatter.format(row.cash)}</td>
-                  <td><b>${formatter.format(row.gross)}</b></td>
-                  <td>${formatter.format(row.leftover)}</td>
-                  <td>${formatter.format(row.swr)}</td>
-                  <td>${formatter.format(row.spending)}</td>
-                  <td>${row.spendPercent}%</td>
-                  <td><span class="status-pill ${statusClass}">${row.status}</span></td>
-                </tr>
+            for (const [bucket, val] of Object.entries(state.bucketTotals)) {
+              const card = document.createElement('div');
+              card.className = "finance-stat-card";
+              card.innerHTML = `
+                <label>${escapeHTML(bucket)} Bucket</label>
+                <div class="stat-val">${formatter.format(val)}</div>
               `;
-            }).join('');
+              DOM.dynamicGridRow.appendChild(card);
+            }
           }
         }
 
-        updateChartEngine();
+        // Render Asset Ledger Matrix Entry Rows Breakdowns
+        if (DOM.assetTableBody) {
+          DOM.assetTableBody.innerHTML = '';
+          if (state.items.length === 0) {
+            DOM.assetTableBody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); font-style: italic; padding: 30px;">Empty asset ledger registry. Click Refresh to establish telemetry.</td></tr>`;
+          } else {
+            state.items.forEach(item => {
+              const tr = document.createElement('tr');
+              tr.innerHTML = `
+                <td style="font-weight: 600; color: var(--text-main);">${escapeHTML(item.asset)}</td>
+                <td><span class="table-badge badge-type">${escapeHTML(item.type)}</span></td>
+                <td style="color: var(--text-muted);">${escapeHTML(item.currency || 'USD')}</td>
+                <td>${item.units ? parseFloat(item.units).toLocaleString(undefined, {maximumFractionDigits: 4}) : '—'}</td>
+                <td style="font-weight: 600; color: #4FC1E9;">${formatter.format(item.amountUsd)}</td>
+                <td><span class="table-badge badge-bucket">${escapeHTML(item.bucket)}</span></td>
+              `;
+              DOM.assetTableBody.appendChild(tr);
+            });
+          }
+        }
+
+        // Render SWR Projections Target Spending Runway Matrix Table Rows
+        if (DOM.projectionTableBody) {
+          DOM.projectionTableBody.innerHTML = '';
+          if (state.projections.length === 0) {
+            DOM.projectionTableBody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: var(--text-muted); font-style: italic; padding: 25px;">No structural projection matrix maps calculated yet.</td></tr>`;
+          } else {
+            state.projections.forEach(row => {
+              let statusClass = "status-secure";
+              const checkStr = String(row.safetyCheck || '').toLowerCase();
+              if (checkStr.includes("risk") || checkStr.includes("caution")) statusClass = "status-risk";
+              if (checkStr.includes("critical") || checkStr.includes("fail") || checkStr.includes("funds")) statusClass = "status-critical";
+
+              const tr = document.createElement('tr');
+              tr.innerHTML = `
+                <td style="font-weight: bold; color: var(--gold-color);">Age ${row.age}</td>
+                <td>${formatter.format(row.stocks)}</td>
+                <td>${formatter.format(row.bonds)}</td>
+                <td>${formatter.format(row.cash)}</td>
+                <td style="font-weight: 600;">${formatter.format(row.grossAssets)}</td>
+                <td style="color: var(--success-green); font-weight: 600;">${formatter.format(row.trueLeftover)}</td>
+                <td>${formatter.format(row.swrAmount)} <small style="color:var(--text-muted)">(4.0%)</small></td>
+                <td style="color: var(--alert-color);">${formatter.format(row.targetSpending)}</td>
+                <td>${row.spendingRatio ? (parseFloat(row.spendingRatio) * 100).toFixed(1) + '%' : '—'}</td>
+                <td><span class="status-pill ${statusClass}">${escapeHTML(row.safetyCheck || 'UNKNOWN')}</span></td>
+              `;
+              DOM.projectionTableBody.appendChild(tr);
+            });
+          }
+        }
+
+        updateChartProjection();
       };
 
-      // ChartJS Runtime Controls
-      const updateChartEngine = () => {
+      // Chart.js Matrix Analytics Multi-line Growth Vector Visualizer
+      const updateChartProjection = () => {
         const ctx = document.getElementById('projectionChart');
         if (!ctx) return;
 
-        const filteredProjections = state.projections.slice(0, state.projectionHorizonYears + 1);
-        const labels = filteredProjections.map(r => `Age ${r.age}`);
-        const grossData = filteredProjections.map(r => r.gross);
-        const spendingData = filteredProjections.map(r => r.spending);
+        if (state.projections.length === 0) {
+          if (chartInstance) {
+            chartInstance.destroy();
+            chartInstance = null;
+          }
+          return;
+        }
+
+        const labels = state.projections.map(r => `Age ${r.age}`);
+        const grossAssetsData = state.projections.map(r => r.grossAssets);
+        const leftoverData = state.projections.map(r => r.trueLeftover);
+        const spendingData = state.projections.map(r => r.targetSpending);
 
         if (chartInstance) {
-          chartInstance.destroy();
-        }
-
-        // Prevent initialization issues if datasets are missing or empty
-        if(filteredProjections.length === 0) return;
-
-        chartInstance = new Chart(ctx, {
-          type: 'line',
-          data: {
-            labels: labels,
-            datasets: [
-              {
-                label: 'Gross Asset Capital Runway',
-                data: grossData,
-                borderColor: '#C99A3B',
-                backgroundColor: 'rgba(201, 154, 59, 0.08)',
-                fill: true,
-                tension: 0.2,
-                borderWidth: 3
-              },
-              {
-                label: 'Inflated Cost Bounds',
-                data: spendingData,
-                borderColor: '#D2784F',
-                borderDash: [5, 5],
-                fill: false,
-                tension: 0.1
-              }
-            ]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: { labels: { color: '#EDE6D6', font: { family: 'Inter' } } }
+          chartInstance.data.labels = labels;
+          chartInstance.data.datasets[0].data = grossAssetsData;
+          chartInstance.data.datasets[1].data = leftoverData;
+          chartInstance.data.datasets[2].data = spendingData;
+          chartInstance.update();
+        } else {
+          chartInstance = new Chart(ctx.getContext('2d'), {
+            type: 'line',
+            data: {
+              labels: labels,
+              datasets: [
+                {
+                  label: 'Gross Portfolio Pool (Pre-Spend)',
+                  data: grossAssetsData,
+                  borderColor: '#4A90E2',
+                  backgroundColor: 'rgba(74, 144, 226, 0.05)',
+                  borderWidth: 2,
+                  tension: 0.2,
+                  fill: true
+                },
+                {
+                  label: 'True Capital Leftover (Post-Spend Bounds)',
+                  data: leftoverData,
+                  borderColor: '#8EBA99',
+                  backgroundColor: 'rgba(142, 186, 153, 0.05)',
+                  borderWidth: 3,
+                  tension: 0.1,
+                  fill: true
+                },
+                {
+                  label: 'Inflated Cost Threshold Curve',
+                  data: spendingData,
+                  borderColor: '#D2784F',
+                  borderDash: [6, 4],
+                  borderWidth: 2,
+                  tension: 0.2,
+                  fill: false
+                }
+              ]
             },
-            scales: {
-              x: { grid: { color: 'rgba(237, 230, 214, 0.05)' }, ticks: { color: '#A9B8B2' } },
-              y: { grid: { color: 'rgba(237, 230, 214, 0.05)' }, ticks: { color: '#A9B8B2' } }
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: {
+                  position: 'top',
+                  labels: { color: '#A9B8B2', font: { family: 'Inter', size: 11 } }
+                }
+              },
+              scales: {
+                x: {
+                  grid: { color: 'rgba(237, 230, 214, 0.05)' },
+                  ticks: { color: '#A9B8B2' }
+                },
+                y: {
+                  grid: { color: 'rgba(237, 230, 214, 0.05)' },
+                  ticks: {
+                    color: '#A9B8B2',
+                    callback: function(value) {
+                      if (value >= 1e6) return '$' + (value / 1e6).toFixed(1) + 'M';
+                      if (value >= 1e3) return '$' + (value / 1e3).toFixed(0) + 'k';
+                      return '$' + value;
+                    }
+                  }
+                }
+              }
             }
-          }
-        });
-      };
-
-      // Auto chart refresh hook when system layouts move
-      window.triggerChartResize = () => {
-        if(chartInstance) {
-          setTimeout(() => { chartInstance.resize(); }, 50);
+          });
         }
       };
 
-      // View Dropdown Horizon Controls
+      // Recalculate Chart element dimensions dynamically on visual panel view adjustments
+      window.triggerChartResize = () => {
+        if (chartInstance) {
+          setTimeout(() => {
+            chartInstance.resize();
+          }, 60);
+        }
+      };
+
+      // Horizon Param Dropdown Modification Changes Intercept Registry
       if (DOM.horizonSelect) {
-        DOM.horizonSelect.addEventListener('change', (e) => {
-          state.projectionHorizonYears = parseInt(e.target.value);
-          if (DOM.chartTitleText) DOM.chartTitleText.innerText = `Age Runway Visualized: Next ${state.projectionHorizonYears} Years`;
-          if (DOM.tableTitleText) DOM.tableTitleText.innerText = `Age Runway Projections (${state.projectionHorizonYears} Year Model)`;
-          saveState();
+        DOM.horizonSelect.addEventListener('change', function() {
+          state.projectionHorizonYears = parseInt(this.value);
+          localStorage.setItem('nexus_projection_horizon', this.value);
+          
+          if (DOM.chartTitleText) DOM.chartTitleText.innerText = `Age Runway Visualized: Next ${state.projectionHorizonYears} Years Configuration`;
+          if (DOM.tableTitleText) DOM.tableTitleText.innerText = `Age Runway Projections Model (${state.projectionHorizonYears}Y Horizon Mode)`;
+          
+          syncFinancialData().then(() => renderFinancials());
         });
       }
 
       if (DOM.refreshSheetBtn) {
-        DOM.refreshSheetBtn.addEventListener('click', fetchFinancialData);
+        DOM.refreshSheetBtn.addEventListener('click', () => {
+          syncFinancialData().then(() => renderFinancials());
+        });
       }
 
-      // Mobile Lane Drawer View Toggles
-      DOM.mobileNavBtns.forEach(btn => {
-        btn.addEventListener('click', function() {
-          DOM.mobileNavBtns.forEach(b => b.classList.remove('active'));
-          this.classList.add('active');
-          
-          const target = this.getAttribute('data-target');
-          DOM.columns.forEach(col => {
-            col.classList.remove('active-column');
-            if(col.id === target) col.classList.add('active-column');
-          });
-        });
+      // Append Event Interface Target Bindings to Kanban Column Nodes
+      DOM.columns.forEach(col => {
+        col.addEventListener('dragover', handleDragOver);
+        col.addEventListener('dragenter', handleDragEnter);
+        col.addEventListener('dragleave', handleDragLeave);
+        col.addEventListener('drop', handleDrop);
       });
 
-      // Drag and Drop Lane Layout Attaches
-      DOM.cardLists.forEach(list => {
-        list.addEventListener('dragover', handleDragOver);
-        list.addEventListener('dragenter', handleDragEnter);
-        list.addEventListener('dragleave', handleDragLeave);
-        list.addEventListener('drop', handleDrop);
-      });
-
-      // System Bootstrap Initiation Sequence
+      // System Bootstrap Pipeline Initialization Routines
       loadState();
       renderTasks();
       renderFinancials();
       
-      // Perform initial telemetry crawl out-of-box
-      fetchFinancialData();
+      // Initial state validation check
+      if (state.netWorth === 0 && state.items.length === 0) {
+        DOM.syncStatusLabel.innerText = "💡 Engine offline. Push 'Refresh Balances' to initialize live pipelines.";
+      } else {
+        DOM.syncStatusLabel.innerText = "📂 Loaded local fallback state cache ledger index matrix.";
+      }
     });
   </script>
 </body>
