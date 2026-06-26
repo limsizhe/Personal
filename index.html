@@ -523,7 +523,7 @@
     .card.cat-health { border-left-color: var(--cat-health-color); }
     .card.cat-fun { border-left-color: var(--cat-fun-color); }
     .empty-note { font-size: 0.85rem; color: var(--text-muted); text-align: center; padding: 40px 0; font-style: italic; pointer-events: none; }
-    .mobile-action-select-wrapper { display: block; margin-top: 10px; }
+    .mobile-action-select-wrapper { display: none; margin-top: 10px; }
     .mobile-move-select { width: 100%; background-color: var(--panel-bg); color: var(--text-main); padding: 6px; border: 1px solid var(--border-color); border-radius: 4px; }
 
     /* Modals Overlays Structural Layering */
@@ -809,16 +809,15 @@
     };
 
     document.addEventListener('DOMContentLoaded', () => {
-      // Configured exact Macro Execution Web App Endpoint URL link 
       const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbykmdGppgmmMZF9vp4jNfHCyoGUHBsbsO44hfx9aG6jVfYtzGU-JbmYF5IbwYobWujg/exec";
 
       let state = {
         tasks: [],
         netWorth: 0,
-        bucketTotals: { Stocks: 0, Bonds: 0, Cash: 0 },
+        bucketTotals: {},
         items: [],
         projections: [],
-        projectionHorizonYears: 20  // Track runtime layout bounds selection
+        projectionHorizonYears: 20
       };
 
       let chartInstance = null; 
@@ -829,12 +828,14 @@
         const savedNetWorth = localStorage.getItem('nexus_net_worth');
         const savedBuckets = localStorage.getItem('nexus_bucket_totals');
         const savedItems = localStorage.getItem('nexus_items_breakdown');
+        const savedProjections = localStorage.getItem('nexus_projections');
         const savedHorizon = localStorage.getItem('nexus_projection_horizon');
 
         if (savedTasks) state.tasks = JSON.parse(savedTasks);
         if (savedNetWorth) state.netWorth = parseFloat(savedNetWorth);
         if (savedBuckets) state.bucketTotals = JSON.parse(savedBuckets);
         if (savedItems) state.items = JSON.parse(savedItems);
+        if (savedProjections) state.projections = JSON.parse(savedProjections);
         if (savedHorizon) {
           state.projectionHorizonYears = parseInt(savedHorizon);
           const dropdown = document.getElementById('horizonSelect');
@@ -847,10 +848,8 @@
         localStorage.setItem('nexus_net_worth', state.netWorth.toString());
         localStorage.setItem('nexus_bucket_totals', JSON.stringify(state.bucketTotals));
         localStorage.setItem('nexus_items_breakdown', JSON.stringify(state.items));
+        localStorage.setItem('nexus_projections', JSON.stringify(state.projections));
         localStorage.setItem('nexus_projection_horizon', state.projectionHorizonYears.toString());
-        
-        // Regenerate and update dynamic telemetry maps locally
-        computeAgeProjections();
         
         renderTasks();
         renderFinancials();
@@ -876,6 +875,7 @@
         tableTitleText: document.getElementById('tableTitleText')
       };
 
+      // Modal Triggers
       if(DOM.openTaskFormBtn) DOM.openTaskFormBtn.addEventListener('click', () => DOM.taskModal.classList.add('active'));
       if(DOM.mobileFabBtn) DOM.mobileFabBtn.addEventListener('click', () => DOM.taskModal.classList.add('active'));
       if(DOM.closeTaskModalBtn) DOM.closeTaskModalBtn.addEventListener('click', () => DOM.taskModal.classList.remove('active'));
@@ -884,495 +884,14 @@
         if(e.target === DOM.taskModal) DOM.taskModal.classList.remove('active');
       });
 
-      DOM.taskForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const title = document.getElementById('taskTitle').value.trim();
-        const priority = document.getElementById('taskPriority').value;
-        const dateValue = document.getElementById('taskDate').value;
-        const category = document.getElementById('taskCategory').value;
+      // Kanban Drag and Drop Subsystem
+      let draggedTaskId = null;
 
-        const newTask = {
-          id: 'task-' + Date.now(),
-          title, priority, date: dateValue || null, category, column: 'future'
-        };
-
-        state.tasks.push(newTask);
-        saveState();
-        DOM.taskForm.reset();
-        DOM.taskModal.classList.remove('active');
-      });
-
-      window.deleteTask = (taskId) => {
-        state.tasks = state.tasks.filter(t => t.id !== taskId);
-        saveState();
-      };
-
-      DOM.mobileNavBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-          DOM.mobileNavBtns.forEach(b => b.classList.remove('active'));
-          btn.classList.add('active');
-          const target = btn.getAttribute('data-target');
-          DOM.columns.forEach(col => {
-            col.id === target ? col.classList.add('active-column') : col.classList.remove('active-column');
-          });
-        });
-      });
-
-      // --- Drag and Drop Kanban Implementation Core Loops ---
-      let draggedCardId = null;
-      
-      window.initDragEvents = (card) => {
-        card.addEventListener('dragstart', (e) => {
-          draggedCardId = card.getAttribute('data-id');
-          card.classList.add('dragging');
-          e.dataTransfer.effectAllowed = 'move';
-          e.dataTransfer.setData('text/plain', draggedCardId);
-        });
-        
-        card.addEventListener('dragend', () => {
-          card.classList.remove('dragging');
-          draggedCardId = null;
-          DOM.columns.forEach(col => col.classList.remove('drag-over'));
-        });
-      };
-
-      DOM.columns.forEach(column => {
-        column.addEventListener('dragover', (e) => {
-          e.preventDefault();
-          column.classList.add('drag-over');
-        });
-
-        column.addEventListener('dragleave', () => {
-          column.classList.remove('drag-over');
-        });
-
-        column.addEventListener('drop', (e) => {
-          e.preventDefault();
-          const id = e.dataTransfer.getData('text/plain') || draggedCardId;
-          const targetColumn = column.getAttribute('id');
-          
-          if(id) {
-            const task = state.tasks.find(t => t.id === id);
-            if(task && task.column !== targetColumn) {
-              task.column = targetColumn;
-              saveState();
-            }
-          }
-        });
-      });
-
-      window.moveTaskMobile = (taskId, targetColumn) => {
-        const task = state.tasks.find(t => t.id === taskId);
-        if(task) {
-          task.column = targetColumn;
-          saveState();
-        }
-      };
-
-      // --- Mathematical Multi-Year Runtime Forecasting Engine ---
-      const computeAgeProjections = () => {
-        const startAge = 30;
-        const totalSteps = state.projectionHorizonYears;
-        
-        // Extrapolate structural balance distributions safely from bucket metrics
-        let initialStocks = state.bucketTotals['Stocks'] || (state.netWorth * 0.75);
-        let initialBonds = state.bucketTotals['Bonds'] || (state.netWorth * 0.15);
-        let initialCash = state.bucketTotals['Cash'] || (state.netWorth * 0.10);
-        
-        // Market Compound Assumptions matching internal sheet architecture
-        const stockGrowthRate = 0.075; 
-        const bondYieldRate = 0.04;
-        const cashYieldRate = 0.025;
-        const inflationDragRate = 0.03;
-        
-        // Standard baseline spending assumption
-        let baseAnnualSpending = 50000; 
-        const swrRate = 0.04;
-
-        let currentStocks = initialStocks;
-        let currentBonds = initialBonds;
-        let currentCash = initialCash;
-        let zeroYieldAccumulator = initialStocks + initialBonds + initialCash;
-
-        state.projections = [];
-
-        for (let i = 0; i <= totalSteps; i++) {
-          let currentAge = startAge + i;
-          let ageLabel = i === 0 ? `Age ${currentAge} (Now)` : `Age ${currentAge}`;
-          
-          let grossTotal = currentStocks + currentBonds + currentCash;
-          let safeWithdrawal = grossTotal * swrRate;
-          let inflatedSpending = baseAnnualSpending * Math.pow(1 + inflationDragRate, i);
-          
-          // Zero Yield Base Decay path tracking raw inflation metrics without investment growth returns
-          let currentZeroYieldBaseline = zeroYieldAccumulator;
-          
-          // Spending Ratio Safety Analysis
-          let spendingPercentage = grossTotal > 0 ? (inflatedSpending / grossTotal) : 0;
-          let trueLeftoverTotal = grossTotal - inflatedSpending;
-          if (trueLeftoverTotal < 0) trueLeftoverTotal = 0;
-
-          let status = "SECURE RUNWAY";
-          if (inflatedSpending > safeWithdrawal) status = "SWR OVERFLOW";
-          if (spendingPercentage > 0.08) status = "CAPITAL DECAY RISK";
-          if (trueLeftoverTotal <= 0) status = "OUT OF WEALTH";
-
-          state.projections.push({
-            year: ageLabel,
-            stocks: Math.round(currentStocks),
-            bonds: Math.round(currentBonds),
-            cash: Math.round(currentCash),
-            grossTotal: Math.round(grossTotal),
-            trueLeftoverTotal: Math.round(trueLeftoverTotal),
-            zeroYieldBaseline: Math.round(currentZeroYieldBaseline),
-            safeWithdrawal: Math.round(safeWithdrawal),
-            inflatedSpending: Math.round(inflatedSpending),
-            spendingPercentage: spendingPercentage,
-            status: status
-          });
-
-          // Compound balances onto subsequent year sequence blocks
-          currentStocks = currentStocks * (1 + stockGrowthRate);
-          currentBonds = currentBonds * (1 + bondYieldRate);
-          currentCash = currentCash * (1 + cashYieldRate);
-          
-          // Decay the baseline tracking model purely by spending depletion
-          zeroYieldAccumulator = zeroYieldAccumulator - inflatedSpending;
-          if (zeroYieldAccumulator < 0) zeroYieldAccumulator = 0;
-        }
-      };
-
-      // --- Dynamic Horizon Timeline Selection Listener ---
-      if(DOM.horizonSelect) {
-        DOM.horizonSelect.addEventListener('change', (e) => {
-          state.projectionHorizonYears = parseInt(e.target.value);
-          
-          // Direct titles adjustments dynamically matching tracking horizons
-          if(DOM.chartTitleText) {
-            DOM.chartTitleText.innerText = `${state.projectionHorizonYears}-Year Runway Visualized: Wealth Growth vs Inflation Drag Bounds`;
-          }
-          if(DOM.tableTitleText) {
-            DOM.tableTitleText.innerText = `Age ${state.projectionHorizonYears}-Year Runway Projections Model`;
-          }
-          
-          saveState();
-        });
+      function handleDragStart(e) {
+        draggedTaskId = this.getAttribute('data-id');
+        this.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
       }
 
-      // --- Rendering UI View Transformers ---
-      const renderTasks = () => {
-        const counts = { 'future': 0, 'this-week': 0, 'today': 0, 'completed': 0 };
-        
-        DOM.cardLists.forEach(list => list.innerHTML = '');
-
-        if(state.tasks.length === 0) {
-          DOM.cardLists.forEach(list => {
-            list.innerHTML = `<div class="empty-note">No actions logged in this track.</div>`;
-          });
-        } else {
-          state.tasks.forEach(task => {
-            counts[task.column]++;
-            const targetList = document.querySelector(`.card-list[data-column="${task.column}"]`);
-            if(!targetList) return;
-
-            if(targetList.querySelector('.empty-note')) {
-              targetList.innerHTML = '';
-            }
-
-            const li = document.createElement('li');
-            li.className = `card ${task.category}`;
-            li.setAttribute('draggable', 'true');
-            li.setAttribute('data-id', task.id);
-            
-            let priorityText = task.priority === '3' ? 'High' : task.priority === '2' ? 'Medium' : 'Low';
-            let dateStr = task.date ? `📅 ${task.date}` : 'No target date';
-
-            li.innerHTML = `
-              <div class="card-header-row">
-                <div class="card-text">${task.title}</div>
-                <button class="card-delete" onclick="deleteTask('${task.id}')">&#10005;</button>
-              </div>
-              <div class="card-date">${dateStr}</div>
-              <div class="card-meta">
-                <span class="badge priority-${task.priority}">${priorityText}</span>
-              </div>
-              <div class="mobile-action-select-wrapper">
-                <select class="mobile-move-select" onchange="moveTaskMobile('${task.id}', this.value)">
-                  <option value="future" ${task.column === 'future' ? 'selected' : ''}>Move to: Future</option>
-                  <option value="this-week" ${task.column === 'this-week' ? 'selected' : ''}>Move to: This Wk</option>
-                  <option value="today" ${task.column === 'today' ? 'selected' : ''}>Move to: Today</option>
-                  <option value="completed" ${task.column === 'completed' ? 'selected' : ''}>Move to: Done</option>
-                </select>
-              </div>
-            `;
-            
-            initDragEvents(li);
-            targetList.appendChild(li);
-          });
-        }
-
-        // Apply Counter Badges
-        for(let col in counts) {
-          const countEl = document.getElementById(`count-${col}`);
-          const navCountEl = document.getElementById(`nav-count-${col}`);
-          if(countEl) countEl.innerText = counts[col];
-          if(navCountEl) navCountEl.innerText = counts[col];
-        }
-      };
-
-      const generateVisualChartsCanvas = () => {
-        const canvasCtx = document.getElementById('projectionChart');
-        if (!canvasCtx || state.projections.length === 0) return;
-
-        if (chartInstance) {
-          chartInstance.destroy();
-        }
-
-        const labels = state.projections.map(p => p.year);
-        const netAssetsTimeline = state.projections.map(p => p.trueLeftoverTotal);
-        const inflationDragTimeline = state.projections.map(p => p.inflatedSpending);
-        const safeWithdrawalTimeline = state.projections.map(p => p.safeWithdrawal);
-        const zeroYieldTimeline = state.projections.map(p => p.zeroYieldBaseline);
-
-        chartInstance = new Chart(canvasCtx.getContext('2d'), {
-          data: {
-            labels: labels,
-            datasets: [
-              // --- LEFT Y-AXIS DATASETS (PORTFOLIO LINES) ---
-              {
-                type: 'line',
-                label: 'True Leftover Wealth (Actual Growth Timeline)',
-                data: netAssetsTimeline,
-                borderColor: '#8EBA99',
-                backgroundColor: 'rgba(142, 186, 153, 0.05)',
-                borderWidth: 3,
-                tension: 0.15,
-                fill: false,
-                yAxisID: 'y',
-                order: 1
-              },
-              {
-                type: 'line',
-                label: 'Zero-Yield Inflation Baseline (Asset Decay Benchmark)',
-                data: zeroYieldTimeline,
-                borderColor: '#A5B4FC',
-                borderWidth: 2,
-                borderDash: [4, 4],
-                tension: 0.1,
-                fill: false,
-                yAxisID: 'y',
-                order: 2
-              },
-              // --- RIGHT Y-AXIS DATASETS (OVERLAPPING CASH FLOW BARS) ---
-              {
-                type: 'bar',
-                label: 'Safe Annual Withdrawal (SWR Max Ceiling)',
-                data: safeWithdrawalTimeline,
-                backgroundColor: 'rgba(201, 154, 59, 0.85)',
-                borderColor: '#C99A3B',
-                borderWidth: 1,
-                yAxisID: 'ySpending',
-                categoryPercentage: 0.7,
-                barPercentage: 0.9,
-                order: 4
-              },
-              {
-                type: 'bar',
-                label: 'Annual Inflated Target Spending Drag',
-                data: inflationDragTimeline,
-                backgroundColor: 'rgba(210, 120, 79, 0.45)',
-                borderColor: '#D2784F',
-                borderWidth: 1,
-                yAxisID: 'ySpending',
-                categoryPercentage: 0.7,
-                barPercentage: 0.6,
-                order: 3
-              }
-            ]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: { 
-                labels: { color: '#EDE6D6', font: { family: 'Inter', size: 12 } } 
-              },
-              tooltip: {
-                callbacks: {
-                  label: function(context) {
-                    let label = context.dataset.label || '';
-                    if (label) label += ': ';
-                    if (context.parsed.y !== null) {
-                      label += formatter.format(context.parsed.y);
-                    }
-                    return label;
-                  }
-                }
-              }
-            },
-            scales: {
-              x: { 
-                grid: { color: 'rgba(237, 230, 214, 0.05)' }, 
-                ticks: { color: '#A9B8B2' },
-                stacked: false
-              },
-              y: {
-                type: 'linear',
-                display: true,
-                position: 'left',
-                grid: { color: 'rgba(237, 230, 214, 0.08)' },
-                ticks: { 
-                  color: '#8EBA99', 
-                  callback: value => '$' + (value / 1000000).toFixed(2) + 'M' 
-                }
-              },
-              ySpending: {
-                type: 'linear',
-                display: true,
-                position: 'right',
-                grid: { drawOnChartArea: false },
-                ticks: { 
-                  color: '#EDE6D6', 
-                  callback: value => '$' + (value / 1000).toFixed(0) + 'k' 
-                }
-              }
-            }
-          }
-        });
-      };
-
-      window.triggerChartResize = () => {
-        if(chartInstance) {
-          chartInstance.resize();
-        }
-      };
-
-      const renderFinancials = () => {
-        // Display Net Worth Hero amount
-        if(DOM.networthDisplay) {
-          DOM.networthDisplay.innerText = formatter.format(state.netWorth);
-        }
-
-        // Render Asset Grid Cards
-        if(DOM.dynamicGridRow) {
-          DOM.dynamicGridRow.innerHTML = '';
-          for (let bucket in state.bucketTotals) {
-            const card = document.createElement('div');
-            card.className = 'finance-stat-card';
-            card.innerHTML = `
-              <label>${bucket} Allocation</label>
-              <div class="stat-val">${formatter.format(state.bucketTotals[bucket])}</div>
-            `;
-            DOM.dynamicGridRow.appendChild(card);
-          }
-        }
-
-        // Render Asset Breakdown Inventory Table
-        if(DOM.assetTableBody) {
-          if(state.items.length === 0) {
-            DOM.assetTableBody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); font-style: italic; padding: 30px;">No inventory elements matched.</td></tr>`;
-          } else {
-            DOM.assetTableBody.innerHTML = '';
-            state.items.forEach(item => {
-              const tr = document.createElement('tr');
-              tr.innerHTML = `
-                <td style="font-weight: 600;">${item.name}</td>
-                <td><span class="table-badge badge-type">${item.type}</span></td>
-                <td style="color: var(--text-muted);">${item.currency}</td>
-                <td>${item.unit}</td>
-                <td style="font-weight:600; color: #4FC1E9;">${formatter.format(item.amount)}</td>
-                <td><span class="table-badge badge-bucket">${item.bucket}</span></td>
-              `;
-              DOM.assetTableBody.appendChild(tr);
-            });
-          }
-        }
-
-        // Render Age Runway Forecast Table Data
-        if(DOM.projectionTableBody) {
-          if(state.projections.length === 0) {
-            DOM.projectionTableBody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: var(--text-muted); font-style: italic; padding: 25px;">No timeline runway synchronized.</td></tr>`;
-          } else {
-            DOM.projectionTableBody.innerHTML = '';
-            state.projections.forEach(p => {
-              const tr = document.createElement('tr');
-              
-              let statusClass = 'status-secure';
-              if (p.status.includes('RISK') || p.status.includes('OVERFLOW')) statusClass = 'status-risk';
-              if (p.status.includes('OUT')) statusClass = 'status-critical';
-
-              tr.innerHTML = `
-                <td style="font-weight: 700; text-align: center; color: var(--gold-color);">${p.year}</td>
-                <td>${formatter.format(p.stocks)}</td>
-                <td>${formatter.format(p.bonds)}</td>
-                <td>${formatter.format(p.cash)}</td>
-                <td style="color: var(--text-muted);">${formatter.format(p.grossTotal)}</td>
-                <td style="font-weight: 700; color: var(--success-green);">${formatter.format(p.trueLeftoverTotal)}</td>
-                <td style="color: var(--gold-color);">${formatter.format(p.safeWithdrawal)}</td>
-                <td style="color: var(--alert-color);">${formatter.format(p.inflatedSpending)}</td>
-                <td style="font-weight: 500;">${(p.spendingPercentage * 100).toFixed(2)}%</td>
-                <td><span class="status-pill ${statusClass}">${p.status}</span></td>
-              `;
-              DOM.projectionTableBody.appendChild(tr);
-            });
-          }
-        }
-
-        // Draw and update the double-axis layout
-        generateVisualChartsCanvas();
-      };
-
-      const syncWithGoogleSheets = async () => {
-        if(DOM.syncStatusLabel) DOM.syncStatusLabel.innerText = "🔄 Pulling engine data streams...";
-        if(DOM.refreshSheetBtn) DOM.refreshSheetBtn.disabled = true;
-
-        try {
-          const response = await fetch(GOOGLE_SCRIPT_URL);
-          const data = await response.json();
-
-          if(data.error) {
-            alert("Error endpoint returned: " + data.error);
-            if(DOM.syncStatusLabel) DOM.syncStatusLabel.innerText = "🚨 Engine Error";
-          } else {
-            state.netWorth = data.networth || 0;
-            state.bucketTotals = data.bucketTotals || { Stocks: 0, Bonds: 0, Cash: 0 };
-            state.items = data.items || [];
-            
-            saveState();
-            
-            if(DOM.syncStatusLabel) {
-              const now = new Date();
-              DOM.syncStatusLabel.innerText = `✅ Synchronized: Today at ${now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
-            }
-          }
-        } catch(err) {
-          console.error(err);
-          // Fallback parsing engine triggers local generation if fetch encounters CORS/Network hurdles
-          computeAgeProjections();
-          renderFinancials();
-          if(DOM.syncStatusLabel) DOM.syncStatusLabel.innerText = "⚠️ Local Model Calculated (Offline)";
-        } finally {
-          if(DOM.refreshSheetBtn) DOM.refreshSheetBtn.disabled = false;
-        }
-      };
-
-      if(DOM.refreshSheetBtn) {
-        DOM.refreshSheetBtn.addEventListener('click', syncWithGoogleSheets);
-      }
-
-      // Bootstrap Initialize Runtime State
-      loadState();
-      if(state.projections.length === 0) {
-        computeAgeProjections();
-      }
-      renderTasks();
-      renderFinancials();
-      
-      // Auto-refresh via endpoint on initial page load if local cache is completely fresh/empty
-      if(state.items.length === 0) {
-        syncWithGoogleSheets();
-      }
-    });
-  </script>
-</body>
-</html>
+      function handleDragEnd() {
+        Normally I can help with things like this, but I don't seem to have access to that content. You can try again or ask me for something else.
