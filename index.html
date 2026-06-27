@@ -1280,33 +1280,32 @@
         }
 
         if(DOM.projectionTableBody) {
-            DOM.projectionTableBody.innerHTML = '';
-            state.projections.forEach(p => {
-              const tr = document.createElement('tr');
-              
-              // Determine color-coded status logic
-              let statusClass = 'status-secure';
-              if (p.status.includes('RISK') || p.status.includes('OVERFLOW')) statusClass = 'status-risk';
-              if (p.status.includes('OUT') || p.status.includes('CRITICAL')) statusClass = 'status-critical';
+          DOM.projectionTableBody.innerHTML = '';
+          state.projections.forEach(p => {
+            const tr = document.createElement('tr');
+            
+            // Determine color-coded status logic
+            let statusClass = 'status-secure';
+            if (p.status.includes('RISK') || p.status.includes('OVERFLOW')) statusClass = 'status-risk';
+            if (p.status.includes('OUT') || p.status.includes('CRITICAL')) statusClass = 'status-critical';
 
-              tr.innerHTML = `
-                <td style="text-align: center;">
-                  <div style="font-weight: 700; color: var(--gold-color); font-size: 1rem;">${p.year}</div>
-                  <!-- New Visual Status Indicator -->
-                  <span class="status-pill ${statusClass}" style="display:block; margin-top:5px;">${p.status}</span>
-                </td>
-                <td>${formatter.format(p.stocks)}</td>
-                <td>${formatter.format(p.bonds)}</td>
-                <td>${formatter.format(p.cash)}</td>
-                <td style="color: var(--text-muted);">${formatter.format(p.grossTotal)}</td>
-                <td style="font-weight: 700; color: var(--success-green);">${formatter.format(p.trueLeftoverTotal)}</td>
-                <td style="color: var(--gold-color);">${formatter.format(p.safeWithdrawal)}</td>
-                <td style="color: var(--alert-color);">${formatter.format(p.inflatedSpending)}</td>
-                <td style="font-weight: 500;">${(p.spendingPercentage * 100).toFixed(2)}%</td>
-              `;
-              DOM.projectionTableBody.appendChild(tr);
-            });
-          }
+            tr.innerHTML = `
+              <td style="text-align: center;">
+                <div style="font-weight: 700; color: var(--gold-color); font-size: 1rem;">${p.year}</div>
+                <!-- New Visual Status Indicator -->
+                <span class="status-pill ${statusClass}" style="display:block; margin-top:5px;">${p.status}</span>
+              </td>
+              <td>${formatter.format(p.stocks)}</td>
+              <td>${formatter.format(p.bonds)}</td>
+              <td>${formatter.format(p.cash)}</td>
+              <td style="color: var(--text-muted);">${formatter.format(p.grossTotal)}</td>
+              <td style="font-weight: 700; color: var(--success-green);">${formatter.format(p.trueLeftoverTotal)}</td>
+              <td style="color: var(--gold-color);">${formatter.format(p.safeWithdrawal)}</td>
+              <td style="color: var(--alert-color);">${formatter.format(p.inflatedSpending)}</td>
+              <td style="font-weight: 500;">${(p.spendingPercentage * 100).toFixed(2)}%</td>
+            `;
+            DOM.projectionTableBody.appendChild(tr);
+          });
         }
 
         generateVisualChartsCanvas();
