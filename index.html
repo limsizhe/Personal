@@ -1,15 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Personal Nexus — Task & Finance Hub</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;1,400&display=swap" rel="stylesheet">
-  
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;1,400&display=swap"
+    rel="stylesheet">
+
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  
+
   <style>
     :root {
       /* Deep Dark Mode Palette */
@@ -24,7 +27,7 @@
       --gold-hover: #E0AB43;
       --calendar-color: #4A90E2;
       --success-green: #8EBA99;
-      
+
       /* Categories Accents */
       --cat-home-color: #5D9CEC;
       --cat-money-color: #4FC1E9;
@@ -51,6 +54,7 @@
       display: none;
       padding: 40px 20px;
     }
+
     .app-view.active-view {
       display: block;
     }
@@ -64,6 +68,7 @@
       justify-content: space-between;
       align-items: center;
     }
+
     .nav-brand {
       font-family: 'Playfair Display', serif;
       font-size: 1.2rem;
@@ -71,6 +76,7 @@
       color: var(--gold-color);
       cursor: pointer;
     }
+
     .nav-links {
       display: flex;
       gap: 16px;
@@ -82,17 +88,20 @@
       margin: 60px auto;
       text-align: center;
     }
+
     .portal-header h1 {
       font-family: 'Playfair Display', serif;
       font-size: 3rem;
       margin-bottom: 12px;
     }
+
     .portal-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
       gap: 30px;
       margin-top: 50px;
     }
+
     .portal-card {
       background-color: var(--panel-bg);
       border: 1px solid var(--border-color);
@@ -105,19 +114,23 @@
       align-items: center;
       gap: 16px;
     }
+
     .portal-card:hover {
       transform: translateY(-5px);
       border-color: var(--gold-color);
-      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
     }
+
     .portal-icon {
       font-size: 3rem;
       color: var(--gold-color);
     }
+
     .portal-card h2 {
       font-family: 'Playfair Display', serif;
       font-size: 1.6rem;
     }
+
     .portal-card p {
       color: var(--text-muted);
       font-size: 0.95rem;
@@ -128,6 +141,7 @@
       max-width: 1100px;
       margin: 0 auto;
     }
+
     .sheet-config-panel {
       background-color: var(--panel-bg);
       border: 1px solid var(--border-color);
@@ -135,12 +149,14 @@
       padding: 24px;
       margin-bottom: 30px;
     }
+
     .config-controls-row {
       display: flex;
       flex-wrap: wrap;
       gap: 20px;
       margin-top: 12px;
     }
+
     .config-box {
       flex: 1;
       min-width: 200px;
@@ -148,6 +164,7 @@
       flex-direction: column;
       gap: 6px;
     }
+
     .config-box label {
       font-size: 0.8rem;
       font-weight: 600;
@@ -155,6 +172,7 @@
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
+
     .networth-hero {
       background: radial-gradient(circle at top left, var(--panel-bg), var(--card-bg));
       border: 1px solid var(--gold-color);
@@ -162,8 +180,9 @@
       padding: 40px;
       text-align: center;
       margin-bottom: 30px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
     }
+
     .networth-label {
       text-transform: uppercase;
       letter-spacing: 2px;
@@ -171,6 +190,7 @@
       font-weight: 600;
       font-size: 0.85rem;
     }
+
     .networth-amount {
       font-family: 'Playfair Display', serif;
       font-size: 4rem;
@@ -178,11 +198,12 @@
       color: var(--gold-color);
       margin: 10px 0;
     }
+
     .sync-status {
       font-size: 0.85rem;
       color: var(--text-muted);
     }
-    
+
     /* Dynamically Adaptive Grid Setup */
     .dynamic-finance-grid {
       display: grid;
@@ -190,12 +211,14 @@
       gap: 20px;
       margin-bottom: 40px;
     }
+
     .finance-stat-card {
       background-color: var(--panel-bg);
       border: 1px solid var(--border-color);
       border-radius: 10px;
       padding: 20px;
     }
+
     .finance-stat-card label {
       font-size: 0.75rem;
       color: var(--text-muted);
@@ -203,6 +226,7 @@
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
+
     .stat-val {
       font-size: 1.6rem;
       font-weight: 600;
@@ -218,6 +242,7 @@
       padding: 24px;
       margin: 30px 0;
     }
+
     .chart-relative-wrapper {
       position: relative;
       width: 100%;
@@ -235,9 +260,11 @@
       cursor: pointer;
       user-select: none;
     }
+
     .section-header-toggle:hover .table-section-title {
       color: var(--gold-hover);
     }
+
     .table-section-title {
       font-family: 'Playfair Display', serif;
       font-size: 1.8rem;
@@ -246,6 +273,7 @@
       border-bottom: none;
       padding-bottom: 0;
     }
+
     .toggle-indicator {
       font-size: 0.9rem;
       background-color: rgba(237, 230, 214, 0.08);
@@ -255,12 +283,13 @@
       font-weight: 600;
       transition: all 0.2s ease;
     }
-    
+
     /* Expandable Table Container States */
     .expandable-container {
       display: none;
       transition: all 0.3s ease;
     }
+
     .expandable-container.expanded {
       display: block;
     }
@@ -272,12 +301,14 @@
       overflow-x: auto;
       margin-bottom: 30px;
     }
+
     .asset-data-table {
       width: 100%;
       border-collapse: collapse;
       text-align: left;
       font-size: 0.9rem;
     }
+
     .asset-data-table th {
       background-color: var(--card-bg);
       color: var(--text-muted);
@@ -289,16 +320,18 @@
       border-bottom: 1px solid var(--border-color);
       white-space: nowrap;
     }
+
     .asset-data-table td {
       padding: 14px 18px;
       border-bottom: 1px solid var(--border-color);
       color: var(--text-main);
       white-space: nowrap;
     }
+
     .asset-data-table tr:hover td {
       background-color: rgba(237, 230, 214, 0.02);
     }
-    
+
     /* Type & Bucket Pill Badge Elements styling */
     .table-badge {
       display: inline-block;
@@ -308,14 +341,39 @@
       border-radius: 4px;
       text-transform: uppercase;
     }
-    .badge-type { background-color: #314d56; color: #a4cbd6; }
-    .badge-bucket { background-color: #443c2c; color: #dcbc82; }
+
+    .badge-type {
+      background-color: #314d56;
+      color: #a4cbd6;
+    }
+
+    .badge-bucket {
+      background-color: #443c2c;
+      color: #dcbc82;
+    }
 
     /* Target Asset Status Pill Indicators */
-    .status-pill { padding: 4px 8px; border-radius: 6px; font-weight: bold; font-size: 0.75rem; }
-    .status-secure { background-color: rgba(142, 186, 153, 0.2); color: var(--success-green); }
-    .status-risk { background-color: rgba(201, 154, 59, 0.2); color: #DCB462; }
-    .status-critical { background-color: rgba(210, 120, 79, 0.2); color: var(--alert-color); }
+    .status-pill {
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-weight: bold;
+      font-size: 0.75rem;
+    }
+
+    .status-secure {
+      background-color: rgba(142, 186, 153, 0.2);
+      color: var(--success-green);
+    }
+
+    .status-risk {
+      background-color: rgba(201, 154, 59, 0.2);
+      color: #DCB462;
+    }
+
+    .status-critical {
+      background-color: rgba(210, 120, 79, 0.2);
+      color: var(--alert-color);
+    }
 
     /* Task Tracker Native CSS Rules Styling */
     header {
@@ -323,6 +381,7 @@
       margin: 0 auto 30px auto;
       text-align: center;
     }
+
     h1 {
       font-family: 'Playfair Display', serif;
       font-weight: 600;
@@ -330,6 +389,7 @@
       margin-bottom: 8px;
       letter-spacing: -0.5px;
     }
+
     .subtitle-wrapper {
       display: flex;
       justify-content: center;
@@ -338,12 +398,14 @@
       margin-top: 8px;
       flex-wrap: wrap;
     }
+
     .subtitle {
       font-family: 'Playfair Display', serif;
       font-style: italic;
       color: var(--text-muted);
       font-size: 1.1rem;
     }
+
     .header-actions {
       display: flex;
       justify-content: center;
@@ -351,6 +413,7 @@
       margin: 20px auto 10px auto;
       flex-wrap: wrap;
     }
+
     .action-btn {
       background-color: transparent;
       color: var(--text-main);
@@ -365,16 +428,19 @@
       align-items: center;
       gap: 6px;
     }
+
     .action-btn:hover {
       background-color: rgba(237, 230, 214, 0.05);
       border-color: var(--text-muted);
     }
+
     .action-btn.primary {
       background-color: var(--gold-color);
       color: #121E22;
       border-color: var(--gold-color);
       font-weight: 600;
     }
+
     .action-btn.primary:hover {
       background-color: var(--gold-hover);
       border-color: var(--gold-hover);
@@ -392,7 +458,7 @@
       background-color: var(--gold-color);
       color: #121E22;
       border: none;
-      box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
       font-size: 1.8rem;
       align-items: center;
       justify-content: center;
@@ -412,6 +478,7 @@
       grid-template-columns: repeat(4, 1fr);
       z-index: 1000;
     }
+
     .mobile-nav-btn {
       background: transparent;
       border: none;
@@ -426,9 +493,11 @@
       text-transform: uppercase;
       cursor: pointer;
     }
+
     .mobile-nav-btn.active {
       color: var(--gold-color);
     }
+
     .mobile-nav-btn .nav-count {
       font-size: 0.7rem;
       background-color: rgba(237, 230, 214, 0.1);
@@ -443,11 +512,13 @@
       margin: 0 auto;
       overflow-x: auto;
     }
+
     .board {
       display: grid;
       grid-template-columns: repeat(4, minmax(280px, 1fr));
       gap: 20px;
     }
+
     .column {
       background-color: var(--panel-bg);
       border-radius: 12px;
@@ -458,9 +529,11 @@
       gap: 14px;
       transition: background-color 0.2s ease;
     }
+
     .column.drag-over {
       background-color: rgba(237, 230, 214, 0.04);
     }
+
     .column-header {
       display: flex;
       justify-content: space-between;
@@ -468,17 +541,20 @@
       padding-bottom: 10px;
       border-bottom: 1px solid var(--border-color);
     }
+
     .column-title {
       font-size: 0.95rem;
       font-weight: 700;
       color: var(--text-main);
     }
+
     .column-count {
       font-size: 0.8rem;
       background-color: rgba(237, 230, 214, 0.1);
       padding: 2px 8px;
       border-radius: 20px;
     }
+
     .card-list {
       list-style-type: none;
       display: flex;
@@ -487,6 +563,7 @@
       flex-grow: 1;
       min-height: 150px;
     }
+
     .card {
       background-color: var(--card-bg);
       border-radius: 8px;
@@ -497,77 +574,261 @@
       position: relative;
       transition: opacity 0.2s ease, transform 0.1s ease;
     }
+
     .card:active {
       cursor: grabbing;
     }
+
     .card.dragging {
       opacity: 0.4;
     }
+
     .card-header-row {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
       margin-bottom: 8px;
     }
-    .card-text { font-size: 0.95rem; font-weight: 500; }
-    .card-delete { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1rem; }
-    .card-delete:hover { color: var(--alert-color); }
-    .card-date { font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; }
-    .card-meta { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
-    .badge { font-size: 0.72rem; font-weight: 600; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; }
-    .badge.priority-3 { background-color: rgba(210, 120, 79, 0.2); color: #E28F6B; }
-    .badge.priority-2 { background-color: rgba(201, 154, 59, 0.2); color: #DCB462; }
-    .badge.priority-1 { background-color: rgba(169, 184, 178, 0.15); color: var(--text-muted); }
-    .card.cat-home { border-left-color: var(--cat-home-color); }
-    .card.cat-money { border-left-color: var(--cat-money-color); }
-    .card.cat-health { border-left-color: var(--cat-health-color); }
-    .card.cat-fun { border-left-color: var(--cat-fun-color); }
-    .empty-note { font-size: 0.85rem; color: var(--text-muted); text-align: center; padding: 40px 0; font-style: italic; pointer-events: none; }
-    .mobile-action-select-wrapper { display: block; margin-top: 10px; }
-    .mobile-move-select { width: 100%; background-color: var(--panel-bg); color: var(--text-main); padding: 6px; border: 1px solid var(--border-color); border-radius: 4px; }
+
+    .card-text {
+      font-size: 0.95rem;
+      font-weight: 500;
+    }
+
+    .card-delete {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 1rem;
+    }
+
+    .card-delete:hover {
+      color: var(--alert-color);
+    }
+
+    .card-date {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .card-meta {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    .badge {
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+
+    .badge.priority-3 {
+      background-color: rgba(210, 120, 79, 0.2);
+      color: #E28F6B;
+    }
+
+    .badge.priority-2 {
+      background-color: rgba(201, 154, 59, 0.2);
+      color: #DCB462;
+    }
+
+    .badge.priority-1 {
+      background-color: rgba(169, 184, 178, 0.15);
+      color: var(--text-muted);
+    }
+
+    .card.cat-home {
+      border-left-color: var(--cat-home-color);
+    }
+
+    .card.cat-money {
+      border-left-color: var(--cat-money-color);
+    }
+
+    .card.cat-health {
+      border-left-color: var(--cat-health-color);
+    }
+
+    .card.cat-fun {
+      border-left-color: var(--cat-fun-color);
+    }
+
+    .empty-note {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      text-align: center;
+      padding: 40px 0;
+      font-style: italic;
+      pointer-events: none;
+    }
+
+    .mobile-action-select-wrapper {
+      display: block;
+      margin-top: 10px;
+    }
+
+    .mobile-move-select {
+      width: 100%;
+      background-color: var(--panel-bg);
+      color: var(--text-main);
+      padding: 6px;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+    }
 
     /* Modals Overlays Structural Layering */
     .modal-overlay {
       position: fixed;
-      top: 0; left: 0; width: 100%; height: 100%;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
       background-color: rgba(18, 30, 34, 0.85);
       backdrop-filter: blur(4px);
-      display: flex; justify-content: center; align-items: center;
-      opacity: 0; pointer-events: none; transition: opacity 0.25s ease; z-index: 2000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+      z-index: 2000;
     }
-    .modal-overlay.active { opacity: 1; pointer-events: auto; }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
     .modal-window {
-      background-color: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 14px;
-      width: 100%; max-width: 550px; display: flex; flex-direction: column;
+      background-color: var(--panel-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      width: 100%;
+      max-width: 550px;
+      display: flex;
+      flex-direction: column;
     }
-    .modal-header { padding: 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
-    .modal-title { font-family: 'Playfair Display', serif; font-size: 1.4rem; }
-    .close-modal-btn { background: transparent; border: none; color: var(--text-main); font-size: 1.5rem; cursor: pointer; }
-    .modal-content { padding: 20px; }
-    .task-form { display: flex; flex-direction: column; gap: 16px; }
-    .form-group { display: flex; flex-direction: column; gap: 6px; }
-    input[type="text"], input[type="date"], select {
-      width: 100%; min-height: 44px; padding: 10px; border: 1px solid var(--border-color);
-      border-radius: 8px; background-color: var(--card-bg); color: var(--text-main); font-family: inherit;
+
+    .modal-header {
+      padding: 20px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
-    .submit-btn { min-height: 46px; background-color: var(--gold-color); border: none; border-radius: 8px; font-weight: 600; cursor: pointer; color: #121E22; }
-    .submit-btn:hover { background-color: var(--gold-hover); }
+
+    .modal-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.4rem;
+    }
+
+    .close-modal-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-main);
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+
+    .modal-content {
+      padding: 20px;
+    }
+
+    .task-form {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    input[type="text"],
+    input[type="date"],
+    select {
+      width: 100%;
+      min-height: 44px;
+      padding: 10px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      background-color: var(--card-bg);
+      color: var(--text-main);
+      font-family: inherit;
+    }
+
+    .submit-btn {
+      min-height: 46px;
+      background-color: var(--gold-color);
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      color: #121E22;
+    }
+
+    .submit-btn:hover {
+      background-color: var(--gold-hover);
+    }
 
     /* Smartphone Optimization Overrides */
     @media (max-width: 768px) {
-      .portal-grid { grid-template-columns: 1fr; gap: 20px; }
-      .board { grid-template-columns: 1fr; gap: 0; }
-      .column { display: none; min-height: auto; background-color: transparent; padding: 0; }
-      .column.active-column { display: flex; }
-      .mobile-fab { display: flex; }
-      .mobile-nav { display: grid; }
-      .mobile-action-select-wrapper { display: block; }
-      .app-view { padding: 20px 14px; }
-      .networth-amount { font-size: 2.5rem; }
-      .chart-relative-wrapper { height: 420px; }
+      .portal-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+
+      .board {
+        grid-template-columns: 1fr;
+        gap: 0;
+      }
+
+      .column {
+        display: none;
+        min-height: auto;
+        background-color: transparent;
+        padding: 0;
+      }
+
+      .column.active-column {
+        display: flex;
+      }
+
+      .mobile-fab {
+        display: flex;
+      }
+
+      .mobile-nav {
+        display: grid;
+      }
+
+      .mobile-action-select-wrapper {
+        display: block;
+      }
+
+      .app-view {
+        padding: 20px 14px;
+      }
+
+      .networth-amount {
+        font-size: 2.5rem;
+      }
+
+      .chart-relative-wrapper {
+        height: 420px;
+      }
     }
   </style>
 </head>
+
 <body>
 
   <nav class="global-nav">
@@ -594,7 +855,8 @@
         <div class="portal-card" onclick="switchView('finance-view')">
           <div class="portal-icon">📊</div>
           <h2>Financial Overview</h2>
-          <p>Sync direct live assets spreadsheet configurations to instantly inspect current real-time Net Worth valuations.</p>
+          <p>Sync direct live assets spreadsheet configurations to instantly inspect current real-time Net Worth
+            valuations.</p>
         </div>
       </div>
     </div>
@@ -614,28 +876,36 @@
     <button class="mobile-fab" id="mobileFabBtn">+</button>
 
     <nav class="mobile-nav" id="mobileNavRow">
-      <button class="mobile-nav-btn active" data-target="future"><span>Future</span><span class="nav-count" id="nav-count-future">0</span></button>
-      <button class="mobile-nav-btn" data-target="this-week"><span>This Wk</span><span class="nav-count" id="nav-count-this-week">0</span></button>
-      <button class="mobile-nav-btn" data-target="today"><span>Today</span><span class="nav-count" id="nav-count-today">0</span></button>
-      <button class="mobile-nav-btn" data-target="completed"><span>Done</span><span class="nav-count" id="nav-count-completed">0</span></button>
+      <button class="mobile-nav-btn active" data-target="future"><span>Future</span><span class="nav-count"
+          id="nav-count-future">0</span></button>
+      <button class="mobile-nav-btn" data-target="this-week"><span>This Wk</span><span class="nav-count"
+          id="nav-count-this-week">0</span></button>
+      <button class="mobile-nav-btn" data-target="today"><span>Today</span><span class="nav-count"
+          id="nav-count-today">0</span></button>
+      <button class="mobile-nav-btn" data-target="completed"><span>Done</span><span class="nav-count"
+          id="nav-count-completed">0</span></button>
     </nav>
 
     <div class="board-container">
       <div class="board">
         <div class="column active-column" id="future">
-          <div class="column-header"><span class="column-title">Future</span><span class="column-count" id="count-future">0</span></div>
+          <div class="column-header"><span class="column-title">Future</span><span class="column-count"
+              id="count-future">0</span></div>
           <ul class="card-list" data-column="future"></ul>
         </div>
         <div class="column" id="this-week">
-          <div class="column-header"><span class="column-title">This Week</span><span class="column-count" id="count-this-week">0</span></div>
+          <div class="column-header"><span class="column-title">This Week</span><span class="column-count"
+              id="count-this-week">0</span></div>
           <ul class="card-list" data-column="this-week"></ul>
         </div>
         <div class="column" id="today">
-          <div class="column-header"><span class="column-title">Today</span><span class="column-count" id="count-today">0</span></div>
+          <div class="column-header"><span class="column-title">Today</span><span class="column-count"
+              id="count-today">0</span></div>
           <ul class="card-list" data-column="today"></ul>
         </div>
         <div class="column" id="completed">
-          <div class="column-header"><span class="column-title">Completed</span><span class="column-count" id="count-completed">0</span></div>
+          <div class="column-header"><span class="column-title">Completed</span><span class="column-count"
+              id="count-completed">0</span></div>
           <ul class="card-list" data-column="completed"></ul>
         </div>
       </div>
@@ -650,10 +920,13 @@
       </header>
 
       <div class="sheet-config-panel">
-        <label style="font-size: 0.85rem; color: var(--gold-color); font-weight: 600;">Engine Controls & Parameters</label>
+        <label style="font-size: 0.85rem; color: var(--gold-color); font-weight: 600;">Engine Controls &
+          Parameters</label>
         <div class="config-controls-row">
           <div class="config-box" style="flex: 0 0 auto; min-width: 160px; justify-content: flex-end;">
-            <button class="action-btn primary" id="refreshSheetBtn" style="border-radius: 8px; white-space: nowrap; width: 100%; height: 44px; display: flex; justify-content: center;">🔄 Refresh Balances</button>
+            <button class="action-btn primary" id="refreshSheetBtn"
+              style="border-radius: 8px; white-space: nowrap; width: 100%; height: 44px; display: flex; justify-content: center;">🔄
+              Refresh Balances</button>
           </div>
           <div class="config-box">
             <label for="horizonSelect">Projection Timeline Horizon</label>
@@ -678,7 +951,9 @@
       <div class="dynamic-finance-grid" id="dynamicGridRow"></div>
 
       <div class="chart-container-panel">
-        <h3 class="table-section-title" id="chartTitleText" style="margin-top: 0; border-bottom: none; font-size: 1.4rem;">Age Runway Visualized: Wealth Growth vs Inflation Drag Bounds</h3>
+        <h3 class="table-section-title" id="chartTitleText"
+          style="margin-top: 0; border-bottom: none; font-size: 1.4rem;">Age Runway Visualized: Wealth Growth vs
+          Inflation Drag Bounds</h3>
         <div class="chart-relative-wrapper">
           <canvas id="projectionChart"></canvas>
         </div>
@@ -707,7 +982,9 @@
             </thead>
             <tbody id="projectionTableBody">
               <tr>
-                <td colspan="10" style="text-align: center; color: var(--text-muted); font-style: italic; padding: 25px;">No timeline runway telemetry synchronized yet.</td>
+                <td colspan="10"
+                  style="text-align: center; color: var(--text-muted); font-style: italic; padding: 25px;">No timeline
+                  runway telemetry synchronized yet.</td>
               </tr>
             </tbody>
           </table>
@@ -733,7 +1010,9 @@
             </thead>
             <tbody id="assetTableBody">
               <tr>
-                <td colspan="6" style="text-align: center; color: var(--text-muted); font-style: italic; padding: 30px;">No active stream synchronized yet. Click refresh to pull data.</td>
+                <td colspan="6"
+                  style="text-align: center; color: var(--text-muted); font-style: italic; padding: 30px;">No active
+                  stream synchronized yet. Click refresh to pull data.</td>
               </tr>
             </tbody>
           </table>
@@ -783,23 +1062,23 @@
   </div>
 
   <script>
-    window.switchView = function(viewId) {
+    window.switchView = function (viewId) {
       document.querySelectorAll('.app-view').forEach(view => {
         view.classList.remove('active-view');
       });
       const targetedView = document.getElementById(viewId);
-      if(targetedView) targetedView.classList.add('active-view');
-      
-      if(viewId === 'finance-view' && window.triggerChartResize) {
+      if (targetedView) targetedView.classList.add('active-view');
+
+      if (viewId === 'finance-view' && window.triggerChartResize) {
         window.triggerChartResize();
       }
       window.scrollTo(0, 0);
     };
 
-    window.toggleContainer = function(containerId, indicatorId) {
+    window.toggleContainer = function (containerId, indicatorId) {
       const el = document.getElementById(containerId);
       const ind = document.getElementById(indicatorId);
-      if(el.classList.contains('expanded')) {
+      if (el.classList.contains('expanded')) {
         el.classList.remove('expanded');
         ind.innerText = "▶ Expand";
       } else {
@@ -821,7 +1100,7 @@
         projectionHorizonYears: 20  // Track runtime layout bounds selection
       };
 
-      let chartInstance = null; 
+      let chartInstance = null;
       const formatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 
       const loadState = () => {
@@ -840,7 +1119,7 @@
         if (savedHorizon) {
           state.projectionHorizonYears = parseInt(savedHorizon);
           const dropdown = document.getElementById('horizonSelect');
-          if(dropdown) dropdown.value = state.projectionHorizonYears.toString();
+          if (dropdown) dropdown.value = state.projectionHorizonYears.toString();
         }
       };
 
@@ -850,11 +1129,11 @@
         localStorage.setItem('nexus_bucket_totals', JSON.stringify(state.bucketTotals));
         localStorage.setItem('nexus_items_breakdown', JSON.stringify(state.items));
         localStorage.setItem('nexus_projection_horizon', state.projectionHorizonYears.toString());
-        localStorage.setItem('nexus_projections', JSON.stringify(state.projections)); 
-        
+        localStorage.setItem('nexus_projections', JSON.stringify(state.projections));
+
         // FIXED: Removed computeAgeProjections() here. 
         // We only want the API to provide financial data. Dragging a task shouldn't trigger local financial math overwrites.
-        
+
         renderTasks();
         renderFinancials();
       };
@@ -879,12 +1158,12 @@
         tableTitleText: document.getElementById('tableTitleText')
       };
 
-      if(DOM.openTaskFormBtn) DOM.openTaskFormBtn.addEventListener('click', () => DOM.taskModal.classList.add('active'));
-      if(DOM.mobileFabBtn) DOM.mobileFabBtn.addEventListener('click', () => DOM.taskModal.classList.add('active'));
-      if(DOM.closeTaskModalBtn) DOM.closeTaskModalBtn.addEventListener('click', () => DOM.taskModal.classList.remove('active'));
+      if (DOM.openTaskFormBtn) DOM.openTaskFormBtn.addEventListener('click', () => DOM.taskModal.classList.add('active'));
+      if (DOM.mobileFabBtn) DOM.mobileFabBtn.addEventListener('click', () => DOM.taskModal.classList.add('active'));
+      if (DOM.closeTaskModalBtn) DOM.closeTaskModalBtn.addEventListener('click', () => DOM.taskModal.classList.remove('active'));
 
       DOM.taskModal.addEventListener('click', (e) => {
-        if(e.target === DOM.taskModal) DOM.taskModal.classList.remove('active');
+        if (e.target === DOM.taskModal) DOM.taskModal.classList.remove('active');
       });
 
       DOM.taskForm.addEventListener('submit', (e) => {
@@ -923,7 +1202,7 @@
 
       // --- Drag and Drop Kanban Implementation Core Loops ---
       let draggedCardId = null;
-      
+
       window.initDragEvents = (card) => {
         card.addEventListener('dragstart', (e) => {
           draggedCardId = card.getAttribute('data-id');
@@ -931,7 +1210,7 @@
           e.dataTransfer.effectAllowed = 'move';
           e.dataTransfer.setData('text/plain', draggedCardId);
         });
-        
+
         card.addEventListener('dragend', () => {
           card.classList.remove('dragging');
           draggedCardId = null;
@@ -953,10 +1232,10 @@
           e.preventDefault();
           const id = e.dataTransfer.getData('text/plain') || draggedCardId;
           const targetColumn = column.getAttribute('id');
-          
-          if(id) {
+
+          if (id) {
             const task = state.tasks.find(t => t.id === id);
-            if(task && task.column !== targetColumn) {
+            if (task && task.column !== targetColumn) {
               task.column = targetColumn;
               saveState();
             }
@@ -966,7 +1245,7 @@
 
       window.moveTaskMobile = (taskId, targetColumn) => {
         const task = state.tasks.find(t => t.id === taskId);
-        if(task) {
+        if (task) {
           task.column = targetColumn;
           saveState();
         }
@@ -977,25 +1256,25 @@
       const computeAgeProjections = () => {
         const startAge = 30;
         const totalSteps = state.projectionHorizonYears;
-        
+
         // Map bucket names from GAS (Investment / Bond / Savings / Cash)
         let initialStocks = state.bucketTotals['Investment'] || state.bucketTotals['Stocks'] || (state.netWorth * 0.75);
-        let initialBonds  = state.bucketTotals['Bond']       || state.bucketTotals['Bonds']  || (state.netWorth * 0.02);
-        let initialCash   = (state.bucketTotals['Savings']   || 0)
-                          + (state.bucketTotals['Cash']      || 0)
-                          || (state.netWorth * 0.12);
-        
-        const stockGrowthRate  = 0.060;   
-        const bondYieldRate    = 0.025;   
-        const cashYieldRate    = 0.010;   
-        const inflationDragRate = 0.035;  
-        const swrRate          = 0.03;    
-        
+        let initialBonds = state.bucketTotals['Bond'] || state.bucketTotals['Bonds'] || (state.netWorth * 0.02);
+        let initialCash = (state.bucketTotals['Savings'] || 0)
+          + (state.bucketTotals['Cash'] || 0)
+          || (state.netWorth * 0.12);
+
+        const stockGrowthRate = 0.060;
+        const bondYieldRate = 0.025;
+        const cashYieldRate = 0.010;
+        const inflationDragRate = 0.035;
+        const swrRate = 0.03;
+
         let baseAnnualSpending = 48000;
 
         let currentStocks = initialStocks;
-        let currentBonds  = initialBonds;
-        let currentCash   = initialCash;
+        let currentBonds = initialBonds;
+        let currentCash = initialCash;
         let zeroYieldAccumulator = initialStocks + initialBonds + initialCash;
         let dynamicTargetSpending = baseAnnualSpending;
 
@@ -1004,54 +1283,54 @@
         for (let i = 0; i <= totalSteps; i++) {
           let currentAge = startAge + i;
           let ageLabel = i === 0 ? `Age ${currentAge} (Now)` : `Age ${currentAge}`;
-          
+
           let grossTotal = currentStocks + currentBonds + currentCash;
-          
+
           let trueLeftoverTotal = Math.max(0, grossTotal - (i === 0 ? 0 : dynamicTargetSpending));
-          let safeWithdrawal    = trueLeftoverTotal * swrRate;
-          let inflatedSpending  = dynamicTargetSpending;
+          let safeWithdrawal = trueLeftoverTotal * swrRate;
+          let inflatedSpending = dynamicTargetSpending;
           let spendingPercentage = grossTotal > 0 ? (inflatedSpending / grossTotal) : 0;
           let currentZeroYieldBaseline = Math.max(0, zeroYieldAccumulator);
 
           let status = "SECURE RUNWAY";
           if (safeWithdrawal < inflatedSpending) status = "SWR OVERFLOW";
-          if (trueLeftoverTotal <= 0)            status = "OUT OF WEALTH";
+          if (trueLeftoverTotal <= 0) status = "OUT OF WEALTH";
 
           state.projections.push({
-            year:               ageLabel,
-            stocks:             Math.round(currentStocks),
-            bonds:              Math.round(currentBonds),
-            cash:               Math.round(currentCash),
-            grossTotal:         Math.round(grossTotal),
-            trueLeftoverTotal:  Math.round(trueLeftoverTotal),
-            zeroYieldBaseline:  Math.round(currentZeroYieldBaseline),
-            safeWithdrawal:     Math.round(safeWithdrawal),
-            inflatedSpending:   Math.round(inflatedSpending),
+            year: ageLabel,
+            stocks: Math.round(currentStocks),
+            bonds: Math.round(currentBonds),
+            cash: Math.round(currentCash),
+            grossTotal: Math.round(grossTotal),
+            trueLeftoverTotal: Math.round(trueLeftoverTotal),
+            zeroYieldBaseline: Math.round(currentZeroYieldBaseline),
+            safeWithdrawal: Math.round(safeWithdrawal),
+            inflatedSpending: Math.round(inflatedSpending),
             spendingPercentage: spendingPercentage,
-            status:             status
+            status: status
           });
 
-          currentStocks           *= 1.060;
-          currentBonds            *= 1.025;
-          currentCash             *= 1.010;
-          dynamicTargetSpending   *= 1.035;
-          zeroYieldAccumulator     = Math.max(0, zeroYieldAccumulator - inflatedSpending);
+          currentStocks *= 1.060;
+          currentBonds *= 1.025;
+          currentCash *= 1.010;
+          dynamicTargetSpending *= 1.035;
+          zeroYieldAccumulator = Math.max(0, zeroYieldAccumulator - inflatedSpending);
         }
       };
 
       // --- Dynamic Horizon Timeline Selection Listener ---
-      if(DOM.horizonSelect) {
+      if (DOM.horizonSelect) {
         DOM.horizonSelect.addEventListener('change', (e) => {
           state.projectionHorizonYears = parseInt(e.target.value);
           localStorage.setItem('nexus_projection_horizon', state.projectionHorizonYears.toString());
-          
-          if(DOM.chartTitleText) {
+
+          if (DOM.chartTitleText) {
             DOM.chartTitleText.innerText = `${state.projectionHorizonYears}-Year Runway Visualized: Wealth Growth vs Inflation Drag Bounds`;
           }
-          if(DOM.tableTitleText) {
+          if (DOM.tableTitleText) {
             DOM.tableTitleText.innerText = `Age ${state.projectionHorizonYears}-Year Runway Projections Model`;
           }
-          
+
           syncWithGoogleSheets();
         });
       }
@@ -1059,10 +1338,10 @@
       // --- Rendering UI View Transformers ---
       const renderTasks = () => {
         const counts = { 'future': 0, 'this-week': 0, 'today': 0, 'completed': 0 };
-        
+
         DOM.cardLists.forEach(list => list.innerHTML = '');
 
-        if(state.tasks.length === 0) {
+        if (state.tasks.length === 0) {
           DOM.cardLists.forEach(list => {
             list.innerHTML = `<div class="empty-note">No actions logged in this track.</div>`;
           });
@@ -1070,9 +1349,9 @@
           state.tasks.forEach(task => {
             counts[task.column]++;
             const targetList = document.querySelector(`.card-list[data-column="${task.column}"]`);
-            if(!targetList) return;
+            if (!targetList) return;
 
-            if(targetList.querySelector('.empty-note')) {
+            if (targetList.querySelector('.empty-note')) {
               targetList.innerHTML = '';
             }
 
@@ -1080,7 +1359,7 @@
             li.className = `card ${task.category}`;
             li.setAttribute('draggable', 'true');
             li.setAttribute('data-id', task.id);
-            
+
             let priorityText = task.priority === '3' ? 'High' : task.priority === '2' ? 'Medium' : 'Low';
             let dateStr = task.date ? `📅 ${task.date}` : 'No target date';
 
@@ -1102,17 +1381,17 @@
                 </select>
               </div>
             `;
-            
+
             initDragEvents(li);
             targetList.appendChild(li);
           });
         }
 
-        for(let col in counts) {
+        for (let col in counts) {
           const countEl = document.getElementById(`count-${col}`);
           const navCountEl = document.getElementById(`nav-count-${col}`);
-          if(countEl) countEl.innerText = counts[col];
-          if(navCountEl) navCountEl.innerText = counts[col];
+          if (countEl) countEl.innerText = counts[col];
+          if (navCountEl) navCountEl.innerText = counts[col];
         }
       };
 
@@ -1188,12 +1467,12 @@
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-              legend: { 
-                labels: { color: '#EDE6D6', font: { family: 'Inter', size: 12 } } 
+              legend: {
+                labels: { color: '#EDE6D6', font: { family: 'Inter', size: 12 } }
               },
               tooltip: {
                 callbacks: {
-                  label: function(context) {
+                  label: function (context) {
                     let label = context.dataset.label || '';
                     if (label) label += ': ';
                     if (context.parsed.y !== null) {
@@ -1205,8 +1484,8 @@
               }
             },
             scales: {
-              x: { 
-                grid: { color: 'rgba(237, 230, 214, 0.05)' }, 
+              x: {
+                grid: { color: 'rgba(237, 230, 214, 0.05)' },
                 ticks: { color: '#A9B8B2' },
                 stacked: false
               },
@@ -1215,9 +1494,9 @@
                 display: true,
                 position: 'left',
                 grid: { color: 'rgba(237, 230, 214, 0.08)' },
-                ticks: { 
-                  color: '#8EBA99', 
-                  callback: value => '$' + (value / 1000000).toFixed(2) + 'M' 
+                ticks: {
+                  color: '#8EBA99',
+                  callback: value => '$' + (value / 1000000).toFixed(2) + 'M'
                 }
               },
               ySpending: {
@@ -1225,9 +1504,9 @@
                 display: true,
                 position: 'right',
                 grid: { drawOnChartArea: false },
-                ticks: { 
-                  color: '#EDE6D6', 
-                  callback: value => '$' + (value / 1000).toFixed(0) + 'k' 
+                ticks: {
+                  color: '#EDE6D6',
+                  callback: value => '$' + (value / 1000).toFixed(0) + 'k'
                 }
               }
             }
@@ -1236,17 +1515,17 @@
       };
 
       window.triggerChartResize = () => {
-        if(chartInstance) {
+        if (chartInstance) {
           chartInstance.resize();
         }
       };
 
       const renderFinancials = () => {
-        if(DOM.networthDisplay) {
+        if (DOM.networthDisplay) {
           DOM.networthDisplay.innerText = formatter.format(state.netWorth);
         }
 
-        if(DOM.dynamicGridRow) {
+        if (DOM.dynamicGridRow) {
           DOM.dynamicGridRow.innerHTML = '';
           for (let bucket in state.bucketTotals) {
             const card = document.createElement('div');
@@ -1259,8 +1538,8 @@
           }
         }
 
-        if(DOM.assetTableBody) {
-          if(state.items.length === 0) {
+        if (DOM.assetTableBody) {
+          if (state.items.length === 0) {
             DOM.assetTableBody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); font-style: italic; padding: 30px;">No inventory elements matched.</td></tr>`;
           } else {
             DOM.assetTableBody.innerHTML = '';
@@ -1279,133 +1558,135 @@
           }
         }
 
-        if(DOM.projectionTableBody) {
-          if(state.projections.length === 0) {
-            DOM.projectionTableBody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: var(--text-muted); font-style: italic; padding: 25px;">No timeline runway synchronized.</td></tr>`;
-          } else {
-            DOM.projectionTableBody.innerHTML = '';
-            state.projections.forEach(p => {
-              const tr = document.createElement('tr');
-              
-              let statusClass = 'status-secure';
-              if (p.status.includes('RISK') || p.status.includes('OVERFLOW') || p.status.includes('DEFICIT')) statusClass = 'status-risk';
-              if (p.status.includes('OUT') || p.status.includes('CRITICAL')) statusClass = 'status-critical';
+        if (DOM.projectionTableBody) {
+          DOM.projectionTableBody.innerHTML = '';
+          state.projections.forEach(p => {
+            const tr = document.createElement('tr');
 
-              tr.innerHTML = `
-                <td style="font-weight: 700; text-align: center; color: var(--gold-color);">${p.year}</td>
-                <td>${formatter.format(p.stocks)}</td>
-                <td>${formatter.format(p.bonds)}</td>
-                <td>${formatter.format(p.cash)}</td>
-                <td style="color: var(--text-muted);">${formatter.format(p.grossTotal)}</td>
-                <td style="font-weight: 700; color: var(--success-green);">${formatter.format(p.trueLeftoverTotal)}</td>
-                <td style="color: var(--gold-color);">${formatter.format(p.safeWithdrawal)}</td>
-                <td style="color: var(--alert-color);">${formatter.format(p.inflatedSpending)}</td>
-                <td style="font-weight: 500;">${(p.spendingPercentage * 100).toFixed(2)}%</td>
-                <td><span class="status-pill ${statusClass}">${p.status}</span></td>
-              `;
-              DOM.projectionTableBody.appendChild(tr);
-            });
-          }
+            // Determine color-coded status logic
+            let statusClass = 'status-secure';
+            if (p.status.includes('RISK') || p.status.includes('OVERFLOW')) statusClass = 'status-risk';
+            if (p.status.includes('OUT') || p.status.includes('CRITICAL')) statusClass = 'status-critical';
+
+            tr.innerHTML = `
+        <td style="text-align: center;">
+          <div style="font-weight: 700; color: var(--gold-color); font-size: 1rem;">${p.year}</div>
+          <!-- New Visual Status Indicator -->
+          <span class="status-pill ${statusClass}" style="display:block; margin-top:5px;">${p.status}</span>
+        </td>
+        <td>${formatter.format(p.stocks)}</td>
+        <td>${formatter.format(p.bonds)}</td>
+        <td>${formatter.format(p.cash)}</td>
+        <td style="color: var(--text-muted);">${formatter.format(p.grossTotal)}</td>
+        <td style="font-weight: 700; color: var(--success-green);">${formatter.format(p.trueLeftoverTotal)}</td>
+        <td style="color: var(--gold-color);">${formatter.format(p.safeWithdrawal)}</td>
+        <td style="color: var(--alert-color);">${formatter.format(p.inflatedSpending)}</td>
+        <td style="font-weight: 500;">${(p.spendingPercentage * 100).toFixed(2)}%</td>
+      `;
+            DOM.projectionTableBody.appendChild(tr);
+          });
         }
-
-        generateVisualChartsCanvas();
       };
 
-      const syncWithGoogleSheets = async () => {
-        if(DOM.syncStatusLabel) DOM.syncStatusLabel.innerText = "🔄 Pulling engine data streams...";
-        if(DOM.refreshSheetBtn) DOM.refreshSheetBtn.disabled = true;
+      generateVisualChartsCanvas();
+    };
 
-        try {
-          const response = await fetch(GOOGLE_SCRIPT_URL);
-          const data = await response.json();
+    const syncWithGoogleSheets = async () => {
+      if (DOM.syncStatusLabel) DOM.syncStatusLabel.innerText = "🔄 Pulling engine data streams...";
+      if (DOM.refreshSheetBtn) DOM.refreshSheetBtn.disabled = true;
 
-          if(data.error) {
-            alert("Error endpoint returned: " + data.error);
-            if(DOM.syncStatusLabel) DOM.syncStatusLabel.innerText = "🚨 Engine Error";
+      try {
+        const response = await fetch(GOOGLE_SCRIPT_URL);
+        const data = await response.json();
+
+        if (data.error) {
+          alert("Error endpoint returned: " + data.error);
+          if (DOM.syncStatusLabel) DOM.syncStatusLabel.innerText = "🚨 Engine Error";
+        } else {
+          state.netWorth = data.networth || 0;
+          state.bucketTotals = data.bucketTotals || { Stocks: 0, Bonds: 0, Cash: 0 };
+          state.items = data.items || [];
+
+          if (data.projections && data.projections.length > 0) {
+            let zeroYield = (state.bucketTotals['Investment'] || 0)
+              + (state.bucketTotals['Bond'] || 0)
+              + (state.bucketTotals['Savings'] || 0)
+              + (state.bucketTotals['Cash'] || 0);
+
+            if (zeroYield === 0) zeroYield = state.netWorth;
+
+            state.projections = data.projections
+              .slice(0, state.projectionHorizonYears + 1)
+              .map((p, i) => {
+                const baseline = Math.max(0, zeroYield);
+                zeroYield = Math.max(0, zeroYield - p.inflatedSpending);
+
+                let status = "SECURE RUNWAY";
+                if (p.status && p.status.includes("DEFICIT")) status = "SWR OVERFLOW";
+                if (p.status && p.status.includes("CRITICAL")) status = "OUT OF WEALTH";
+
+                return {
+                  year: p.year,
+                  stocks: p.stocks,
+                  bonds: p.bonds,
+                  cash: p.cash,
+                  grossTotal: p.grossTotal,
+                  trueLeftoverTotal: p.trueLeftoverTotal,  // Accurate pull from API
+                  safeWithdrawal: p.safeWithdrawal,
+                  inflatedSpending: p.inflatedSpending,
+                  spendingPercentage: p.spendingPercentage,
+                  zeroYieldBaseline: Math.round(baseline),
+                  status: status
+                };
+              });
           } else {
-            state.netWorth = data.networth || 0;
-            state.bucketTotals = data.bucketTotals || { Stocks: 0, Bonds: 0, Cash: 0 };
-            state.items = data.items || [];
-
-            if (data.projections && data.projections.length > 0) {
-              let zeroYield = (state.bucketTotals['Investment'] || 0)
-                            + (state.bucketTotals['Bond']      || 0)
-                            + (state.bucketTotals['Savings']   || 0)
-                            + (state.bucketTotals['Cash']      || 0);
-              
-              if (zeroYield === 0) zeroYield = state.netWorth;
-
-              state.projections = data.projections
-                .slice(0, state.projectionHorizonYears + 1)
-                .map((p, i) => {
-                  const baseline = Math.max(0, zeroYield);
-                  zeroYield = Math.max(0, zeroYield - p.inflatedSpending);
-
-                  let status = "SECURE RUNWAY";
-                  if (p.status && p.status.includes("DEFICIT")) status = "SWR OVERFLOW";
-                  if (p.status && p.status.includes("CRITICAL")) status = "OUT OF WEALTH";
-
-                  return {
-                    year:               p.year,
-                    stocks:             p.stocks,
-                    bonds:              p.bonds,
-                    cash:               p.cash,
-                    grossTotal:         p.grossTotal,
-                    trueLeftoverTotal:  p.trueLeftoverTotal,  // Accurate pull from API
-                    safeWithdrawal:     p.safeWithdrawal,
-                    inflatedSpending:   p.inflatedSpending,
-                    spendingPercentage: p.spendingPercentage,
-                    zeroYieldBaseline:  Math.round(baseline),
-                    status:             status
-                  };
-                });
-            } else {
-              computeAgeProjections();
-            }
-
-            // Persist the actual API calculations locally 
-            localStorage.setItem('nexus_net_worth', state.netWorth.toString());
-            localStorage.setItem('nexus_bucket_totals', JSON.stringify(state.bucketTotals));
-            localStorage.setItem('nexus_items_breakdown', JSON.stringify(state.items));
-            localStorage.setItem('nexus_tasks', JSON.stringify(state.tasks));
-            localStorage.setItem('nexus_projection_horizon', state.projectionHorizonYears.toString());
-            localStorage.setItem('nexus_projections', JSON.stringify(state.projections));
-
-            renderFinancials();
-
-            if(DOM.syncStatusLabel) {
-              const now = new Date();
-              DOM.syncStatusLabel.innerText = `✅ Synchronized: Today at ${now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
-            }
+            computeAgeProjections();
           }
-        } catch(err) {
-          console.error(err);
-          computeAgeProjections();
+
+          // Persist the actual API calculations locally 
+          localStorage.setItem('nexus_net_worth', state.netWorth.toString());
+          localStorage.setItem('nexus_bucket_totals', JSON.stringify(state.bucketTotals));
+          localStorage.setItem('nexus_items_breakdown', JSON.stringify(state.items));
+          localStorage.setItem('nexus_tasks', JSON.stringify(state.tasks));
+          localStorage.setItem('nexus_projection_horizon', state.projectionHorizonYears.toString());
+          localStorage.setItem('nexus_projections', JSON.stringify(state.projections));
+
           renderFinancials();
-          if(DOM.syncStatusLabel) DOM.syncStatusLabel.innerText = "⚠️ Local Model Calculated (Offline)";
-        } finally {
-          if(DOM.refreshSheetBtn) DOM.refreshSheetBtn.disabled = false;
+
+          if (DOM.syncStatusLabel) {
+            const now = new Date();
+            DOM.syncStatusLabel.innerText = `✅ Synchronized: Today at ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+          }
         }
-      };
-
-      if(DOM.refreshSheetBtn) {
-        DOM.refreshSheetBtn.addEventListener('click', syncWithGoogleSheets);
+      } catch (err) {
+        console.error(err);
+        computeAgeProjections();
+        renderFinancials();
+        if (DOM.syncStatusLabel) DOM.syncStatusLabel.innerText = "⚠️ Local Model Calculated (Offline)";
+      } finally {
+        if (DOM.refreshSheetBtn) DOM.refreshSheetBtn.disabled = false;
       }
+    };
 
-      // Initial Bootstrap Flow 
-      loadState();
-      
-      // If we don't have previously saved projections, use fallback math temporarily
-      if (state.projections.length === 0) {
-        computeAgeProjections(); 
-      }
-      
-      renderTasks();
-      renderFinancials();
-      
-      // Ensure we auto-sync accurate sheet values on load
-      syncWithGoogleSheets();
+    if (DOM.refreshSheetBtn) {
+      DOM.refreshSheetBtn.addEventListener('click', syncWithGoogleSheets);
+    }
+
+    // Initial Bootstrap Flow 
+    loadState();
+
+    // If we don't have previously saved projections, use fallback math temporarily
+    if (state.projections.length === 0) {
+      computeAgeProjections();
+    }
+
+    renderTasks();
+    renderFinancials();
+
+    // Ensure we auto-sync accurate sheet values on load
+    syncWithGoogleSheets();
     });
   </script>
 </body>
+
 </html>
