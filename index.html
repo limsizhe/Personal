@@ -1348,6 +1348,17 @@
           const response = await fetch(GOOGLE_SCRIPT_URL);
           const data = await response.json();
 
+          // --- ADDED FRONTEND AUTHORIZATION CHECK HERE ---
+          if (!data.success && data.needsAuthorization) {
+            alert("🚨 Action Required:\n\n" + data.error);
+            if(DOM.syncStatusLabel) DOM.syncStatusLabel.innerText = "🔒 Authorization Expired";
+            
+            // Revert back to local fallback calculations so the UI doesn't crash
+            computeAgeProjections();
+            renderFinancials();
+            return; // Terminate execution early
+          }
+
           if(data.error) {
             alert("Error endpoint returned: " + data.error);
             if(DOM.syncStatusLabel) DOM.syncStatusLabel.innerText = "🚨 Engine Error";
