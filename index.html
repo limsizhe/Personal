@@ -547,12 +547,37 @@
     .modal-content { padding: 20px; }
     .task-form { display: flex; flex-direction: column; gap: 16px; }
     .form-group { display: flex; flex-direction: column; gap: 6px; }
-    input[type="text"], input[type="date"], select {
+    input[type="text"], select {
       width: 100%; min-height: 44px; padding: 10px; border: 1px solid var(--border-color);
       border-radius: 8px; background-color: var(--card-bg); color: var(--text-main); font-family: inherit;
     }
     .submit-btn { min-height: 46px; background-color: var(--gold-color); border: none; border-radius: 8px; font-weight: 600; cursor: pointer; color: #121E22; }
     .submit-btn:hover { background-color: var(--gold-hover); }
+
+    /* Enhanced Date Picker Dropdown Visibility & Activation */
+    input[type="date"] {
+      width: 100%; min-height: 44px; padding: 10px; border: 1px solid var(--border-color);
+      border-radius: 8px; background-color: var(--card-bg); color: var(--text-main); font-family: inherit;
+      position: relative;
+      cursor: pointer;
+    }
+
+    /* Turns the hidden calendar icon white so it's fully scannable in Dark Mode */
+    input[type="date"]::-webkit-calendar-picker-indicator {
+      filter: invert(93%) sepia(6%) saturate(851%) hue-rotate(323deg) brightness(95%) contrast(87%);
+      cursor: pointer;
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 20px;
+      height: 20px;
+    }
+
+    /* Fallback ensuring clicking the input text block anywhere triggers the browser calendar view */
+    input[type="date"]::-webkit-datetime-edit {
+      cursor: pointer;
+    }
 
     /* Smartphone Optimization Overrides */
     @media (max-width: 768px) {
@@ -879,22 +904,21 @@
       async function syncTaskToGoogleCalendar(task) {
         if (!task.date) return null;
         try {
-          const response = await fetch(GOOGLE_SCRIPT_URL, {
+          // Reformatting to Standard URL Encoded Parameters handles the payload translation safely inside no-cors requests
+          const payload = new URLSearchParams();
+          payload.append('action', 'createCalendarEvent');
+          payload.append('title', task.title);
+          payload.append('date', task.date);
+          payload.append('category', task.category);
+          payload.append('priority', task.priority);
+          payload.append('taskId', task.id);
+
+          await fetch(GOOGLE_SCRIPT_URL, {
             method: 'POST',
-            mode: 'no-cors', // standard cross-domain execution safety bypass config
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              action: 'createCalendarEvent',
-              title: task.title,
-              date: task.date,
-              category: task.category,
-              priority: task.priority,
-              taskId: task.id
-            })
+            mode: 'no-cors', 
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: payload.toString()
           });
-          // Since no-cors hides response bodies, we use an atomic optimization: 
-          // Your backend script should save the taskId directly to the calendar description field 
-          // so cleanup scans remain robust.
           return true;
         } catch (err) {
           console.error("Calendar sync failed:", err);
@@ -905,16 +929,17 @@
       async function deleteTaskFromGoogleCalendar(task) {
         if (!task.date) return;
         try {
+          const payload = new URLSearchParams();
+          payload.append('action', 'deleteCalendarEvent');
+          payload.append('title', task.title);
+          payload.append('date', task.date);
+          payload.append('taskId', task.id);
+
           await fetch(GOOGLE_SCRIPT_URL, {
             method: 'POST',
             mode: 'no-cors',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              action: 'deleteCalendarEvent',
-              title: task.title,
-              date: task.date,
-              taskId: task.id
-            })
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: payload.toString()
           });
         } catch (err) {
           console.error("Calendar deletion sync failed:", err);
