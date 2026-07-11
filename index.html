@@ -379,6 +379,16 @@
       background-color: var(--gold-hover);
       border-color: var(--gold-hover);
     }
+    .action-btn.danger {
+      background-color: var(--alert-color);
+      color: #121E22;
+      border-color: var(--alert-color);
+      font-weight: 600;
+    }
+    .action-btn.danger:hover {
+      background-color: #e28960;
+      border-color: #e28960;
+    }
 
     /* Mobile Floating Action Button (FAB) */
     .mobile-fab {
@@ -544,6 +554,15 @@
     .modal-title { font-family: 'Playfair Display', serif; font-size: 1.4rem; }
     .close-modal-btn { background: transparent; border: none; color: var(--text-main); font-size: 1.5rem; cursor: pointer; }
     .modal-content { padding: 20px; }
+    
+    /* Confirmation Dialog Footer Buttons Layout */
+    .confirmation-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-top: 24px;
+    }
+    
     .task-form { display: flex; flex-direction: column; gap: 16px; }
     .form-group { display: flex; flex-direction: column; gap: 6px; }
     input[type="text"], input[type="date"], select {
@@ -743,6 +762,7 @@
     </div>
   </div>
 
+  <!-- Create Task Modal -->
   <div class="modal-overlay" id="taskModal">
     <div class="modal-window">
       <div class="modal-header">
@@ -782,6 +802,23 @@
     </div>
   </div>
 
+  <!-- Delete Task Confirmation Dialog Modal -->
+  <div class="modal-overlay" id="deleteConfirmModal">
+    <div class="modal-window" style="max-width: 420px;">
+      <div class="modal-header">
+        <h2 class="modal-title">Confirm Deletion</h2>
+        <button class="close-modal-btn" id="closeDeleteModalBtn">&#10005;</button>
+      </div>
+      <div class="modal-content">
+        <p id="deleteConfirmMessage" style="color: var(--text-main); font-size: 0.95rem;">Are you sure you want to permanently delete this task?</p>
+        <div class="confirmation-actions">
+          <button class="action-btn" id="cancelDeleteBtn">Cancel</button>
+          <button class="action-btn danger" id="confirmDeleteBtn">Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
     window.switchView = function(viewId) {
       document.querySelectorAll('.app-view').forEach(view => {
@@ -809,7 +846,7 @@
     };
 
     document.addEventListener('DOMContentLoaded', () => {
-      // Configuration URL link pointing directly to your consolidated Google Apps Script
+      // Script URL pointing directly to your consolidated Google Apps Script
       const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbykmdGppgmmMZF9vp4jNfHCyoGUHBsbsO44hfx9aG6jVfYtzGU-JbmYF5IbwYobWujg/exec";
 
       let state = {
@@ -822,6 +859,7 @@
       };
 
       let chartInstance = null; 
+      let taskPendingDeletionId = null; // Stores target entity scope for removal confirm state loop
       const formatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 
       const loadState = () => {
@@ -862,6 +900,11 @@
         openTaskFormBtn: document.getElementById('openTaskFormBtn'),
         mobileFabBtn: document.getElementById('mobileFabBtn'),
         closeTaskModalBtn: document.getElementById('closeTaskModalBtn'),
+        deleteConfirmModal: document.getElementById('deleteConfirmModal'),
+        closeDeleteModalBtn: document.getElementById('closeDeleteModalBtn'),
+        cancelDeleteBtn: document.getElementById('cancelDeleteBtn'),
+        confirmDeleteBtn: document.getElementById('confirmDeleteBtn'),
+        deleteConfirmMessage: document.getElementById('deleteConfirmMessage'),
         columns: document.querySelectorAll('.column'),
         cardLists: document.querySelectorAll('.card-list'),
         mobileNavBtns: document.querySelectorAll('.mobile-nav-btn'),
@@ -884,6 +927,14 @@
         if(e.target === DOM.taskModal) DOM.taskModal.classList.remove('active');
       });
 
+      // Confirmation Intercept Handlers
+      if(DOM.closeDeleteModalBtn) DOM.closeDeleteModalBtn.addEventListener('click', () => DOM.deleteConfirmModal.classList.remove('active'));
+      if(DOM.cancelDeleteBtn) DOM.cancelDeleteBtn.addEventListener('click', () => DOM.deleteConfirmModal.classList.remove('active'));
+      
+      DOM.deleteConfirmModal.addEventListener('click', (e) => {
+        if(e.target === DOM.deleteConfirmModal) DOM.deleteConfirmModal.classList.remove('active');
+      });
+
       // Unified Calendar & Kanban Integration Event Submission Pipeline
       DOM.taskForm.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -898,13 +949,11 @@
           calendarEventId: null
         };
 
-        // UI updates instantly to avoid friction latency bounds
         state.tasks.push(newTask);
         saveState();
         DOM.taskForm.reset();
         DOM.taskModal.classList.remove('active');
 
-        // Asynchronous channel background push to Google Calendar
         try {
           await fetch(GOOGLE_SCRIPT_URL, {
             method: 'POST',
@@ -924,27 +973,50 @@
         }
       });
 
-      window.deleteTask = async (taskId) => {
-        const match = state.tasks.find(t => t.id === taskId);
-        state.tasks = state.tasks.filter(t => t.id !== taskId);
-        saveState();
-
-        if (match && match.calendarEventId) {
-          try {
-            await fetch(GOOGLE_SCRIPT_URL, {
-              method: 'POST',
-              mode: 'no-cors',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                action: "deleteCalendarEvent",
-                eventId: match.calendarEventId
-              })
-            });
-          } catch (err) {
-            console.error("Calendar deletion routing error:", err);
-          }
+      // Intercept and open confirmation prompt window instead of absolute instant drop
+      window.deleteTask = (taskId) => {
+        const targetTask = state.tasks.find(t => t.id === taskId);
+        if (!targetTask) return;
+        
+        taskPendingDeletionId = taskId;
+        if(DOM.deleteConfirmMessage) {
+          DOM.deleteConfirmMessage.innerHTML = `Are you sure you want to permanently delete the task:<br><strong style="color: var(--gold-color); display: inline-block; margin-top: 8px;">"${targetTask.title}"</strong>?`;
         }
+        DOM.deleteConfirmModal.classList.add('active');
       };
+
+      // Confirmed pipeline execution action routing loops
+      if(DOM.confirmDeleteBtn) {
+        DOM.confirmDeleteBtn.addEventListener('click', async () => {
+          if (!taskPendingDeletionId) return;
+          
+          const match = state.tasks.find(t => t.id === taskPendingDeletionId);
+          state.tasks = state.tasks.filter(t => t.id !== taskPendingDeletionId);
+          
+          // Reset local identifier state variables
+          const isolatedId = taskPendingDeletionId;
+          taskPendingDeletionId = null;
+          
+          DOM.deleteConfirmModal.classList.remove('active');
+          saveState();
+
+          if (match && match.calendarEventId) {
+            try {
+              await fetch(GOOGLE_SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  action: "deleteCalendarEvent",
+                  eventId: match.calendarEventId
+                })
+              });
+            } catch (err) {
+              console.error("Calendar deletion routing error:", err);
+            }
+          }
+        });
+      }
 
       DOM.mobileNavBtns.forEach(btn => {
         btn.addEventListener('click', () => {
@@ -1348,15 +1420,13 @@
           const response = await fetch(GOOGLE_SCRIPT_URL);
           const data = await response.json();
 
-          // --- ADDED FRONTEND AUTHORIZATION CHECK HERE ---
           if (!data.success && data.needsAuthorization) {
             alert("🚨 Action Required:\n\n" + data.error);
             if(DOM.syncStatusLabel) DOM.syncStatusLabel.innerText = "🔒 Authorization Expired";
             
-            // Revert back to local fallback calculations so the UI doesn't crash
             computeAgeProjections();
             renderFinancials();
-            return; // Terminate execution early
+            return; 
           }
 
           if(data.error) {
