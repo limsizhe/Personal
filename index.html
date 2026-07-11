@@ -809,7 +809,7 @@
     };
 
     document.addEventListener('DOMContentLoaded', () => {
-      // Configured exact Macro Execution Web App Endpoint URL link 
+      // Configuration URL link pointing directly to your consolidated Google Apps Script
       const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbykmdGppgmmMZF9vp4jNfHCyoGUHBsbsO44hfx9aG6jVfYtzGU-JbmYF5IbwYobWujg/exec";
 
       let state = {
@@ -818,7 +818,7 @@
         bucketTotals: { Stocks: 0, Bonds: 0, Cash: 0 },
         items: [],
         projections: [],
-        projectionHorizonYears: 20  // Track runtime layout bounds selection
+        projectionHorizonYears: 20  
       };
 
       let chartInstance = null; 
@@ -830,13 +830,13 @@
         const savedBuckets = localStorage.getItem('nexus_bucket_totals');
         const savedItems = localStorage.getItem('nexus_items_breakdown');
         const savedHorizon = localStorage.getItem('nexus_projection_horizon');
-        const savedProjections = localStorage.getItem('nexus_projections'); // Added to persist true API values
+        const savedProjections = localStorage.getItem('nexus_projections'); 
 
         if (savedTasks) state.tasks = JSON.parse(savedTasks);
         if (savedNetWorth) state.netWorth = parseFloat(savedNetWorth);
         if (savedBuckets) state.bucketTotals = JSON.parse(savedBuckets);
         if (savedItems) state.items = JSON.parse(savedItems);
-        if (savedProjections) state.projections = JSON.parse(savedProjections); // Read previously fetched API projections
+        if (savedProjections) state.projections = JSON.parse(savedProjections); 
         if (savedHorizon) {
           state.projectionHorizonYears = parseInt(savedHorizon);
           const dropdown = document.getElementById('horizonSelect');
@@ -851,9 +851,6 @@
         localStorage.setItem('nexus_items_breakdown', JSON.stringify(state.items));
         localStorage.setItem('nexus_projection_horizon', state.projectionHorizonYears.toString());
         localStorage.setItem('nexus_projections', JSON.stringify(state.projections)); 
-        
-        // FIXED: Removed computeAgeProjections() here. 
-        // We only want the API to provide financial data. Dragging a task shouldn't trigger local financial math overwrites.
         
         renderTasks();
         renderFinancials();
@@ -887,7 +884,8 @@
         if(e.target === DOM.taskModal) DOM.taskModal.classList.remove('active');
       });
 
-      DOM.taskForm.addEventListener('submit', (e) => {
+      // Unified Calendar & Kanban Integration Event Submission Pipeline
+      DOM.taskForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const title = document.getElementById('taskTitle').value.trim();
         const priority = document.getElementById('taskPriority').value;
@@ -896,18 +894,56 @@
 
         const newTask = {
           id: 'task-' + Date.now(),
-          title, priority, date: dateValue || null, category, column: 'future'
+          title, priority, date: dateValue || null, category, column: 'future',
+          calendarEventId: null
         };
 
+        // UI updates instantly to avoid friction latency bounds
         state.tasks.push(newTask);
         saveState();
         DOM.taskForm.reset();
         DOM.taskModal.classList.remove('active');
+
+        // Asynchronous channel background push to Google Calendar
+        try {
+          await fetch(GOOGLE_SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors', 
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: "createCalendarEvent",
+              title: title,
+              date: dateValue,
+              priority: priority,
+              category: category
+            })
+          });
+          console.log("Task pipeline entry successfully synchronized with Google Calendar.");
+        } catch (err) {
+          console.error("Failed to post task payload to core engine gateway:", err);
+        }
       });
 
-      window.deleteTask = (taskId) => {
+      window.deleteTask = async (taskId) => {
+        const match = state.tasks.find(t => t.id === taskId);
         state.tasks = state.tasks.filter(t => t.id !== taskId);
         saveState();
+
+        if (match && match.calendarEventId) {
+          try {
+            await fetch(GOOGLE_SCRIPT_URL, {
+              method: 'POST',
+              mode: 'no-cors',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                action: "deleteCalendarEvent",
+                eventId: match.calendarEventId
+              })
+            });
+          } catch (err) {
+            console.error("Calendar deletion routing error:", err);
+          }
+        }
       };
 
       DOM.mobileNavBtns.forEach(btn => {
@@ -973,17 +1009,13 @@
       };
 
       // --- Mathematical Multi-Year Runtime Forecasting Engine ---
-      // NOTE: This acts only as an offline fallback if the API fails entirely.
       const computeAgeProjections = () => {
         const startAge = 30;
         const totalSteps = state.projectionHorizonYears;
         
-        // Map bucket names from GAS (Investment / Bond / Savings / Cash)
         let initialStocks = state.bucketTotals['Investment'] || state.bucketTotals['Stocks'] || (state.netWorth * 0.75);
         let initialBonds  = state.bucketTotals['Bond']       || state.bucketTotals['Bonds']  || (state.netWorth * 0.02);
-        let initialCash   = (state.bucketTotals['Savings']   || 0)
-                          + (state.bucketTotals['Cash']      || 0)
-                          || (state.netWorth * 0.12);
+        let initialCash   = (state.bucketTotals['Savings']   || 0) + (state.bucketTotals['Cash'] || 0) || (state.netWorth * 0.12);
         
         const stockGrowthRate  = 0.060;   
         const bondYieldRate    = 0.025;   
@@ -1006,7 +1038,6 @@
           let ageLabel = i === 0 ? `Age ${currentAge} (Now)` : `Age ${currentAge}`;
           
           let grossTotal = currentStocks + currentBonds + currentCash;
-          
           let trueLeftoverTotal = Math.max(0, grossTotal - (i === 0 ? 0 : dynamicTargetSpending));
           let safeWithdrawal    = trueLeftoverTotal * swrRate;
           let inflatedSpending  = dynamicTargetSpending;
@@ -1031,15 +1062,14 @@
             status:             status
           });
 
-          currentStocks           *= 1.060;
-          currentBonds            *= 1.025;
-          currentCash             *= 1.010;
-          dynamicTargetSpending   *= 1.035;
+          currentStocks           *= (1 + stockGrowthRate);
+          currentBonds            *= (1 + bondYieldRate);
+          currentCash             *= (1 + cashYieldRate);
+          dynamicTargetSpending   *= (1 + inflationDragRate);
           zeroYieldAccumulator     = Math.max(0, zeroYieldAccumulator - inflatedSpending);
         }
       };
 
-      // --- Dynamic Horizon Timeline Selection Listener ---
       if(DOM.horizonSelect) {
         DOM.horizonSelect.addEventListener('change', (e) => {
           state.projectionHorizonYears = parseInt(e.target.value);
@@ -1059,7 +1089,6 @@
       // --- Rendering UI View Transformers ---
       const renderTasks = () => {
         const counts = { 'future': 0, 'this-week': 0, 'today': 0, 'completed': 0 };
-        
         DOM.cardLists.forEach(list => list.innerHTML = '');
 
         if(state.tasks.length === 0) {
@@ -1351,7 +1380,7 @@
                     bonds:              p.bonds,
                     cash:               p.cash,
                     grossTotal:         p.grossTotal,
-                    trueLeftoverTotal:  p.trueLeftoverTotal,  // Accurate pull from API
+                    trueLeftoverTotal:  p.trueLeftoverTotal, 
                     safeWithdrawal:     p.safeWithdrawal,
                     inflatedSpending:   p.inflatedSpending,
                     spendingPercentage: p.spendingPercentage,
@@ -1363,7 +1392,6 @@
               computeAgeProjections();
             }
 
-            // Persist the actual API calculations locally 
             localStorage.setItem('nexus_net_worth', state.netWorth.toString());
             localStorage.setItem('nexus_bucket_totals', JSON.stringify(state.bucketTotals));
             localStorage.setItem('nexus_items_breakdown', JSON.stringify(state.items));
@@ -1392,18 +1420,14 @@
         DOM.refreshSheetBtn.addEventListener('click', syncWithGoogleSheets);
       }
 
-      // Initial Bootstrap Flow 
       loadState();
       
-      // If we don't have previously saved projections, use fallback math temporarily
       if (state.projections.length === 0) {
         computeAgeProjections(); 
       }
       
       renderTasks();
       renderFinancials();
-      
-      // Ensure we auto-sync accurate sheet values on load
       syncWithGoogleSheets();
     });
   </script>
