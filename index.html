@@ -464,6 +464,7 @@
     }
     .column-header {
       display: flex;
+      justify-open: space-between;
       justify-content: space-between;
       align-items: center;
       padding-bottom: 10px;
@@ -613,6 +614,7 @@
         <p class="subtitle">Visual flow management framework.</p>
       </div>
       <div class="header-actions">
+        <button class="action-btn" id="allItemsToggleBtn">All Items: Off</button>
         <button class="action-btn primary" id="openTaskFormBtn">+ Add New Task</button>
       </div>
     </header>
@@ -842,7 +844,8 @@
         bucketTotals: { Stocks: 0, Bonds: 0, Cash: 0 },
         items: [],
         projections: [],
-        projectionHorizonYears: 20  
+        projectionHorizonYears: 20,
+        showAllItems: false
       };
 
       let chartInstance = null; 
@@ -856,12 +859,14 @@
         const savedItems = localStorage.getItem('nexus_items_breakdown');
         const savedHorizon = localStorage.getItem('nexus_projection_horizon');
         const savedProjections = localStorage.getItem('nexus_projections'); 
+        const savedShowAll = localStorage.getItem('nexus_show_all_items');
 
         if (savedTasks) state.tasks = JSON.parse(savedTasks);
         if (savedNetWorth) state.netWorth = parseFloat(savedNetWorth);
         if (savedBuckets) state.bucketTotals = JSON.parse(savedBuckets);
         if (savedItems) state.items = JSON.parse(savedItems);
         if (savedProjections) state.projections = JSON.parse(savedProjections); 
+        if (savedShowAll) state.showAllItems = savedShowAll === 'true';
         if (savedHorizon) {
           state.projectionHorizonYears = parseInt(savedHorizon);
           const dropdown = document.getElementById('horizonSelect');
@@ -876,6 +881,7 @@
         localStorage.setItem('nexus_items_breakdown', JSON.stringify(state.items));
         localStorage.setItem('nexus_projection_horizon', state.projectionHorizonYears.toString());
         localStorage.setItem('nexus_projections', JSON.stringify(state.projections)); 
+        localStorage.setItem('nexus_show_all_items', state.showAllItems.toString());
         
         renderTasks();
         renderFinancials();
@@ -903,7 +909,8 @@
         assetTableBody: document.getElementById('assetTableBody'),
         projectionTableBody: document.getElementById('projectionTableBody'),
         chartTitleText: document.getElementById('chartTitleText'),
-        tableTitleText: document.getElementById('tableTitleText')
+        tableTitleText: document.getElementById('tableTitleText'),
+        allItemsToggleBtn: document.getElementById('allItemsToggleBtn')
       };
 
       if(DOM.openTaskFormBtn) DOM.openTaskFormBtn.addEventListener('click', () => DOM.taskModal.classList.add('active'));
@@ -921,6 +928,14 @@
         if(e.target === DOM.deleteConfirmModal) DOM.deleteConfirmModal.classList.remove('active');
       });
 
+      if (DOM.allItemsToggleBtn) {
+        DOM.allItemsToggleBtn.addEventListener('click', () => {
+          state.showAllItems = !state.showAllItems;
+          DOM.allItemsToggleBtn.innerText = state.showAllItems ? "All Items: On" : "All Items: Off";
+          saveState();
+        });
+      }
+
       // Synchronized Form Sync Lifecycle Update
       DOM.taskForm.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -932,9 +947,20 @@
         // Temporary unique state string identifier
         const localTaskId = 'task-' + Date.now();
 
+        // Calculate direct dynamic initial assignment bucket location placement
+        let initialColumn = 'future';
+        if (dateValue) {
+          const todayStr = new Date().toISOString().split('T')[0];
+          if (dateValue === todayStr) {
+            initialColumn = 'future'; // Override Today placement configuration directly
+          } else {
+            initialColumn = 'future';
+          }
+        }
+
         const newTask = {
           id: localTaskId,
-          title, priority, date: dateValue || null, category, column: 'future',
+          title, priority, date: dateValue || null, category, column: initialColumn,
           calendarEventId: null // Populated below dynamically by proxy response
         };
 
@@ -1062,6 +1088,11 @@
             const task = state.tasks.find(t => t.id === id);
             if(task && task.column !== targetColumn) {
               task.column = targetColumn;
+              if (targetColumn === 'completed') {
+                task.completedDate = new Date().toISOString().split('T')[0];
+              } else {
+                delete task.completedDate;
+              }
               saveState();
             }
           }
@@ -1072,6 +1103,11 @@
         const task = state.tasks.find(t => t.id === taskId);
         if(task) {
           task.column = targetColumn;
+          if (targetColumn === 'completed') {
+            task.completedDate = new Date().toISOString().split('T')[0];
+          } else {
+            delete task.completedDate;
+          }
           saveState();
         }
       };
@@ -1157,12 +1193,50 @@
         const counts = { 'future': 0, 'this-week': 0, 'today': 0, 'completed': 0 };
         DOM.cardLists.forEach(list => list.innerHTML = '');
 
-        if(state.tasks.length === 0) {
+        if (DOM.allItemsToggleBtn) {
+          DOM.allItemsToggleBtn.innerText = state.showAllItems ? "All Items: On" : "All Items: Off";
+        }
+
+        const todayStr = new Date().toISOString().split('T')[0];
+        const todayMidnight = new Date(todayStr);
+
+        const visibleTasks = state.tasks.filter(task => {
+          let computedColumn = task.column;
+
+          // Rule 1: Fix task with target date = today bucketed in 'Future' rather than 'Today'
+          if (computedColumn !== 'completed' && task.date === todayStr) {
+            computedColumn = 'future';
+            task.column = 'future'; // Synchronize internal property mutations
+          }
+
+          // Rule 2: 'Completed' section should only show tasks completed within 14 days unless showAllItems is true
+          if (computedColumn === 'completed' && !state.showAllItems && task.completedDate) {
+            const completedTime = new Date(task.completedDate);
+            const deltaDays = Math.floor((todayMidnight - completedTime) / (1000 * 60 * 60 * 24));
+            if (deltaDays > 14) {
+              return false;
+            }
+          }
+
+          // Rule 3: 'Future' section should filter out items past 14 days unless showAllItems is true
+          if (computedColumn === 'future' && !state.showAllItems && task.date) {
+            const targetTime = new Date(task.date);
+            const deltaDays = Math.ceil((targetTime - todayMidnight) / (1000 * 60 * 60 * 24));
+            // Show if target date falls between today and up to next 14 days
+            if (deltaDays > 14 || deltaDays < 0) {
+              return false;
+            }
+          }
+
+          return true;
+        });
+
+        if(visibleTasks.length === 0) {
           DOM.cardLists.forEach(list => {
             list.innerHTML = `<div class="empty-note">No actions logged in this track.</div>`;
           });
         } else {
-          state.tasks.forEach(task => {
+          visibleTasks.forEach(task => {
             counts[task.column]++;
             const targetList = document.querySelector(`.card-list[data-column="${task.column}"]`);
             if(!targetList) return;
@@ -1202,6 +1276,13 @@
             targetList.appendChild(li);
           });
         }
+
+        // Fill remaining completely empty columns layout with proper notifications placeholder
+        DOM.cardLists.forEach(list => {
+          if (list.children.length === 0) {
+            list.innerHTML = `<div class="empty-note">No actions logged in this track.</div>`;
+          }
+        });
 
         for(let col in counts) {
           const countEl = document.getElementById(`count-${col}`);
