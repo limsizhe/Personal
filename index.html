@@ -210,7 +210,7 @@
       color: #4FC1E9;
     }
 
-    /* Graphical Projection Panel - Optimized heights */
+    /* Graphical Projection Panel */
     .chart-container-panel {
       background-color: var(--panel-bg);
       border: 1px solid var(--border-color);
@@ -243,8 +243,6 @@
       font-size: 1.8rem;
       color: var(--text-main);
       margin: 0;
-      border-bottom: none;
-      padding-bottom: 0;
     }
     .toggle-indicator {
       font-size: 0.9rem;
@@ -256,10 +254,8 @@
       transition: all 0.2s ease;
     }
     
-    /* Expandable Table Container States */
     .expandable-container {
       display: none;
-      transition: all 0.3s ease;
     }
     .expandable-container.expanded {
       display: block;
@@ -299,7 +295,6 @@
       background-color: rgba(237, 230, 214, 0.02);
     }
     
-    /* Type & Bucket Pill Badge Elements styling */
     .table-badge {
       display: inline-block;
       font-size: 0.72rem;
@@ -311,13 +306,12 @@
     .badge-type { background-color: #314d56; color: #a4cbd6; }
     .badge-bucket { background-color: #443c2c; color: #dcbc82; }
 
-    /* Target Asset Status Pill Indicators */
     .status-pill { padding: 4px 8px; border-radius: 6px; font-weight: bold; font-size: 0.75rem; }
     .status-secure { background-color: rgba(142, 186, 153, 0.2); color: var(--success-green); }
     .status-risk { background-color: rgba(201, 154, 59, 0.2); color: #DCB462; }
     .status-critical { background-color: rgba(210, 120, 79, 0.2); color: var(--alert-color); }
 
-    /* Task Tracker Native CSS Rules Styling */
+    /* Task Tracker CSS */
     header {
       max-width: 1400px;
       margin: 0 auto 30px auto;
@@ -390,7 +384,6 @@
       border-color: #e28960;
     }
 
-    /* Mobile Floating Action Button (FAB) */
     .mobile-fab {
       display: none;
       position: fixed;
@@ -410,7 +403,6 @@
       z-index: 999;
     }
 
-    /* Mobile Bottom Navigation Bar Switcher */
     .mobile-nav {
       display: none;
       position: fixed;
@@ -466,7 +458,6 @@
       display: flex;
       flex-direction: column;
       gap: 14px;
-      transition: background-color 0.2s ease;
     }
     .column.drag-over {
       background-color: rgba(237, 230, 214, 0.04);
@@ -505,7 +496,6 @@
       border-left: 4px solid transparent;
       cursor: grab;
       position: relative;
-      transition: opacity 0.2s ease, transform 0.1s ease;
     }
     .card:active {
       cursor: grabbing;
@@ -536,7 +526,7 @@
     .mobile-action-select-wrapper { display: block; margin-top: 10px; }
     .mobile-move-select { width: 100%; background-color: var(--panel-bg); color: var(--text-main); padding: 6px; border: 1px solid var(--border-color); border-radius: 4px; }
 
-    /* Modals Overlays Structural Layering */
+    /* Modals Overlays */
     .modal-overlay {
       position: fixed;
       top: 0; left: 0; width: 100%; height: 100%;
@@ -555,7 +545,6 @@
     .close-modal-btn { background: transparent; border: none; color: var(--text-main); font-size: 1.5rem; cursor: pointer; }
     .modal-content { padding: 20px; }
     
-    /* Confirmation Dialog Footer Buttons Layout */
     .confirmation-actions {
       display: flex;
       justify-content: flex-end;
@@ -572,7 +561,6 @@
     .submit-btn { min-height: 46px; background-color: var(--gold-color); border: none; border-radius: 8px; font-weight: 600; cursor: pointer; color: #121E22; }
     .submit-btn:hover { background-color: var(--gold-hover); }
 
-    /* Smartphone Optimization Overrides */
     @media (max-width: 768px) {
       .portal-grid { grid-template-columns: 1fr; gap: 20px; }
       .board { grid-template-columns: 1fr; gap: 0; }
@@ -580,7 +568,6 @@
       .column.active-column { display: flex; }
       .mobile-fab { display: flex; }
       .mobile-nav { display: grid; }
-      .mobile-action-select-wrapper { display: block; }
       .app-view { padding: 20px 14px; }
       .networth-amount { font-size: 2.5rem; }
       .chart-relative-wrapper { height: 420px; }
@@ -697,7 +684,7 @@
       <div class="dynamic-finance-grid" id="dynamicGridRow"></div>
 
       <div class="chart-container-panel">
-        <h3 class="table-section-title" id="chartTitleText" style="margin-top: 0; border-bottom: none; font-size: 1.4rem;">Age Runway Visualized: Wealth Growth vs Inflation Drag Bounds</h3>
+        <h3 class="table-section-title" id="chartTitleText" style="margin-top: 0; font-size: 1.4rem;">Age Runway Visualized: Wealth Growth vs Inflation Drag Bounds</h3>
         <div class="chart-relative-wrapper">
           <canvas id="projectionChart"></canvas>
         </div>
@@ -846,7 +833,7 @@
     };
 
     document.addEventListener('DOMContentLoaded', () => {
-      // Script URL pointing directly to your consolidated Google Apps Script
+      // Direct Web App API URL configuration
       const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbykmdGppgmmMZF9vp4jNfHCyoGUHBsbsO44hfx9aG6jVfYtzGU-JbmYF5IbwYobWujg/exec";
 
       let state = {
@@ -859,7 +846,7 @@
       };
 
       let chartInstance = null; 
-      let taskPendingDeletionId = null; // Stores target entity scope for removal confirm state loop
+      let taskPendingDeletionId = null; 
       const formatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 
       const loadState = () => {
@@ -927,7 +914,6 @@
         if(e.target === DOM.taskModal) DOM.taskModal.classList.remove('active');
       });
 
-      // Confirmation Intercept Handlers
       if(DOM.closeDeleteModalBtn) DOM.closeDeleteModalBtn.addEventListener('click', () => DOM.deleteConfirmModal.classList.remove('active'));
       if(DOM.cancelDeleteBtn) DOM.cancelDeleteBtn.addEventListener('click', () => DOM.deleteConfirmModal.classList.remove('active'));
       
@@ -935,7 +921,7 @@
         if(e.target === DOM.deleteConfirmModal) DOM.deleteConfirmModal.classList.remove('active');
       });
 
-      // Unified Calendar & Kanban Integration Event Submission Pipeline
+      // Synchronized Form Sync Lifecycle Update
       DOM.taskForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const title = document.getElementById('taskTitle').value.trim();
@@ -943,10 +929,13 @@
         const dateValue = document.getElementById('taskDate').value;
         const category = document.getElementById('taskCategory').value;
 
+        // Temporary unique state string identifier
+        const localTaskId = 'task-' + Date.now();
+
         const newTask = {
-          id: 'task-' + Date.now(),
+          id: localTaskId,
           title, priority, date: dateValue || null, category, column: 'future',
-          calendarEventId: null
+          calendarEventId: null // Populated below dynamically by proxy response
         };
 
         state.tasks.push(newTask);
@@ -955,10 +944,10 @@
         DOM.taskModal.classList.remove('active');
 
         try {
-          await fetch(GOOGLE_SCRIPT_URL, {
+          // Switch to active CORS-proxied request loop to catch the returned Event ID payload
+          const response = await fetch(GOOGLE_SCRIPT_URL, {
             method: 'POST',
-            mode: 'no-cors', 
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
             body: JSON.stringify({
               action: "createCalendarEvent",
               title: title,
@@ -967,13 +956,22 @@
               category: category
             })
           });
-          console.log("Task pipeline entry successfully synchronized with Google Calendar.");
+          
+          const result = await response.json();
+          if (result && result.success && result.eventId) {
+            // Find the task locally and permanently map the reference key tracking parameters
+            const taskIndex = state.tasks.findIndex(t => t.id === localTaskId);
+            if (taskIndex !== -1) {
+              state.tasks[taskIndex].calendarEventId = result.eventId;
+              saveState();
+              console.log("Captured Google Calendar Event Identification Key:", result.eventId);
+            }
+          }
         } catch (err) {
-          console.error("Failed to post task payload to core engine gateway:", err);
+          console.error("Failed to map dynamic calendar event tracking identifier:", err);
         }
       });
 
-      // Intercept and open confirmation prompt window instead of absolute instant drop
       window.deleteTask = (taskId) => {
         const targetTask = state.tasks.find(t => t.id === taskId);
         if (!targetTask) return;
@@ -985,7 +983,7 @@
         DOM.deleteConfirmModal.classList.add('active');
       };
 
-      // Confirmed pipeline execution action routing loops
+      // Confirmed Deletion Handlers utilizing the stored reference keys
       if(DOM.confirmDeleteBtn) {
         DOM.confirmDeleteBtn.addEventListener('click', async () => {
           if (!taskPendingDeletionId) return;
@@ -993,27 +991,27 @@
           const match = state.tasks.find(t => t.id === taskPendingDeletionId);
           state.tasks = state.tasks.filter(t => t.id !== taskPendingDeletionId);
           
-          // Reset local identifier state variables
-          const isolatedId = taskPendingDeletionId;
           taskPendingDeletionId = null;
-          
           DOM.deleteConfirmModal.classList.remove('active');
           saveState();
 
           if (match && match.calendarEventId) {
+            console.log("Dispatching Calendar Deletion Hook for Event ID:", match.calendarEventId);
             try {
               await fetch(GOOGLE_SCRIPT_URL, {
                 method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                 body: JSON.stringify({
                   action: "deleteCalendarEvent",
                   eventId: match.calendarEventId
                 })
               });
+              console.log("Calendar removal instruction pipeline terminated successfully.");
             } catch (err) {
               console.error("Calendar deletion routing error:", err);
             }
+          } else {
+            console.warn("Task deleted, but no active Google Calendar tracking context was identified.");
           }
         });
       }
@@ -1029,9 +1027,7 @@
         });
       });
 
-      // --- Drag and Drop Kanban Implementation Core Loops ---
       let draggedCardId = null;
-      
       window.initDragEvents = (card) => {
         card.addEventListener('dragstart', (e) => {
           draggedCardId = card.getAttribute('data-id');
@@ -1080,7 +1076,6 @@
         }
       };
 
-      // --- Mathematical Multi-Year Runtime Forecasting Engine ---
       const computeAgeProjections = () => {
         const startAge = 30;
         const totalSteps = state.projectionHorizonYears;
@@ -1158,7 +1153,6 @@
         });
       }
 
-      // --- Rendering UI View Transformers ---
       const renderTasks = () => {
         const counts = { 'future': 0, 'this-week': 0, 'today': 0, 'completed': 0 };
         DOM.cardLists.forEach(list => list.innerHTML = '');
@@ -1308,8 +1302,7 @@
             scales: {
               x: { 
                 grid: { color: 'rgba(237, 230, 214, 0.05)' }, 
-                ticks: { color: '#A9B8B2' },
-                stacked: false
+                ticks: { color: '#A9B8B2' }
               },
               y: {
                 type: 'linear',
@@ -1476,7 +1469,6 @@
             localStorage.setItem('nexus_net_worth', state.netWorth.toString());
             localStorage.setItem('nexus_bucket_totals', JSON.stringify(state.bucketTotals));
             localStorage.setItem('nexus_items_breakdown', JSON.stringify(state.items));
-            localStorage.setItem('nexus_tasks', JSON.stringify(state.tasks));
             localStorage.setItem('nexus_projection_horizon', state.projectionHorizonYears.toString());
             localStorage.setItem('nexus_projections', JSON.stringify(state.projections));
 
