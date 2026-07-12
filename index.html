@@ -464,7 +464,6 @@
     }
     .column-header {
       display: flex;
-      justify-open: space-between;
       justify-content: space-between;
       align-items: center;
       padding-bottom: 10px;
@@ -944,24 +943,21 @@
         const dateValue = document.getElementById('taskDate').value;
         const category = document.getElementById('taskCategory').value;
 
-        // Temporary unique state string identifier
         const localTaskId = 'task-' + Date.now();
 
-        // Calculate direct dynamic initial assignment bucket location placement
+        // Standard dynamic initial position placement
         let initialColumn = 'future';
         if (dateValue) {
           const todayStr = new Date().toISOString().split('T')[0];
           if (dateValue === todayStr) {
-            initialColumn = 'future'; // Override Today placement configuration directly
-          } else {
-            initialColumn = 'future';
+            initialColumn = 'today';
           }
         }
 
         const newTask = {
           id: localTaskId,
           title, priority, date: dateValue || null, category, column: initialColumn,
-          calendarEventId: null // Populated below dynamically by proxy response
+          calendarEventId: null 
         };
 
         state.tasks.push(newTask);
@@ -970,7 +966,6 @@
         DOM.taskModal.classList.remove('active');
 
         try {
-          // Switch to active CORS-proxied request loop to catch the returned Event ID payload
           const response = await fetch(GOOGLE_SCRIPT_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -985,7 +980,6 @@
           
           const result = await response.json();
           if (result && result.success && result.eventId) {
-            // Find the task locally and permanently map the reference key tracking parameters
             const taskIndex = state.tasks.findIndex(t => t.id === localTaskId);
             if (taskIndex !== -1) {
               state.tasks[taskIndex].calendarEventId = result.eventId;
@@ -1009,7 +1003,6 @@
         DOM.deleteConfirmModal.classList.add('active');
       };
 
-      // Confirmed Deletion Handlers utilizing the stored reference keys
       if(DOM.confirmDeleteBtn) {
         DOM.confirmDeleteBtn.addEventListener('click', async () => {
           if (!taskPendingDeletionId) return;
@@ -1036,8 +1029,6 @@
             } catch (err) {
               console.error("Calendar deletion routing error:", err);
             }
-          } else {
-            console.warn("Task deleted, but no active Google Calendar tracking context was identified.");
           }
         });
       }
@@ -1203,12 +1194,6 @@
         const visibleTasks = state.tasks.filter(task => {
           let computedColumn = task.column;
 
-          // Rule 1: Fix task with target date = today bucketed in 'Future' rather than 'Today'
-          if (computedColumn !== 'completed' && task.date === todayStr) {
-            computedColumn = 'future';
-            task.column = 'future'; // Synchronize internal property mutations
-          }
-
           // Rule 2: 'Completed' section should only show tasks completed within 14 days unless showAllItems is true
           if (computedColumn === 'completed' && !state.showAllItems && task.completedDate) {
             const completedTime = new Date(task.completedDate);
@@ -1222,7 +1207,6 @@
           if (computedColumn === 'future' && !state.showAllItems && task.date) {
             const targetTime = new Date(task.date);
             const deltaDays = Math.ceil((targetTime - todayMidnight) / (1000 * 60 * 60 * 24));
-            // Show if target date falls between today and up to next 14 days
             if (deltaDays > 14 || deltaDays < 0) {
               return false;
             }
@@ -1277,7 +1261,6 @@
           });
         }
 
-        // Fill remaining completely empty columns layout with proper notifications placeholder
         DOM.cardLists.forEach(list => {
           if (list.children.length === 0) {
             list.innerHTML = `<div class="empty-note">No actions logged in this track.</div>`;
