@@ -776,6 +776,16 @@
             <input type="date" id="taskDate">
           </div>
           <div class="form-group">
+            <label for="taskRepeat">Repeat Interval</label>
+            <select id="taskRepeat" required>
+              <option value="none" selected>Does not repeat</option>
+              <option value="daily">Every day</option>
+              <option value="weekly">Every week</option>
+              <option value="monthly">Every month</option>
+              <option value="yearly">Every year</option>
+            </select>
+          </div>
+          <div class="form-group">
             <label for="taskCategory">Category</label>
             <select id="taskCategory" required>
               <option value="cat-home">Home & Chores</option>
@@ -957,6 +967,7 @@
         const newTask = {
           id: localTaskId,
           title, priority, date: dateValue || null, category, column: initialColumn,
+          repeat: repeatValue,
           calendarEventId: null 
         };
 
@@ -974,7 +985,8 @@
               title: title,
               date: dateValue,
               priority: priority,
-              category: category
+              category: category,
+              repeat: repeatValue
             })
           });
           
